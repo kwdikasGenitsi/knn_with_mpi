@@ -113,10 +113,17 @@ test_array_distances_from_vp ()
 }
 
 int
-less_than_median (Array *array, number_t vantage_point)
+less_than_median (Array *distances, number_t vantage_point, number_t median)
 {
   int count_points
     = 0; // counts how many points are closer to vantage point than median.
+  for (int i = 0; i < distances->size; i++)
+    {
+      if (distances[i]->data < fabs (vantage_point - median))
+	{
+	  count_points++;
+	}
+    }
   return count_points;
 }
 
