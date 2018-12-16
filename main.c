@@ -24,7 +24,7 @@ masterPart(int world_size,
            float* numberPart);
 
 void
-slavePart(int world_rank, int partLength, float* numberPart, int size);
+slavePart(int world_rank, int partLength, float* numberPart, int size, long x);
 
 Array*
 array_new_random(int size)
@@ -130,7 +130,7 @@ main(int argc, char** argv)
                                   dataset->size, dataset->data);
         printf("Median: %.2f\n", median);
     } else {
-        slavePart(world_rank, dataset->size, dataset->data, dataset_size);
+        slavePart(world_rank, dataset->size, dataset->data, dataset_size, 4);
     }
 
     array_free(dataset);
