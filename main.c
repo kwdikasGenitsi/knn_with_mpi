@@ -119,12 +119,53 @@ less_than_median (Array *distances, number_t vantage_point, number_t median)
     = 0; // counts how many points are closer to vantage point than median.
   for (int i = 0; i < distances->size; i++)
     {
-      if (distances[i]->data < fabs (vantage_point - median))
+      if (distances->data[i] <= fabs (vantage_point - median))
 	{
 	  count_points++;
 	}
     }
   return count_points;
+}
+
+Array *
+points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
+		     number_t median, int is_process_left, int less_than_median)
+{
+  Array *transfer_buffer = (Array *) malloc (sizeof (*transfer_buffer));
+  if (is_process_left)
+    {
+      transfer_buffer->data = (number_t *) malloc (
+	sizeof (number_t *) * (dataset->size - less_than_median));
+      transfer_buffer->size = dataset->size - less_than_median;
+    }
+  else
+    {
+      transfer_buffer->data
+	= (number_t *) malloc (sizeof (number_t *) * less_than_median);
+      transfer_buffer->size = less_than_median;
+    }
+
+  int k = 0;
+  for (int i = 0; i < dataset->size; i++)
+    {
+      if (is_process_left)
+	{
+	  if (distances->data[i] > fabs (vantage_point - median))
+	    {
+	      transfer_buffer->data[k] = dataset->data[i];
+	      k++;
+	    }
+	}
+      else
+	{
+	  if (distances->data[i] < fabs (vantage_point - median))
+	    {
+	      transfer_buffer->data[k] = dataset->data[i];
+	      k++;
+	    }
+	}
+    }
+  return transfer_buffer;
 }
 
 int
