@@ -1,3 +1,4 @@
+#include "median.h"
 #include <assert.h>
 #include <math.h>
 #include <mpi.h>
@@ -56,26 +57,44 @@ group_size(int l)
 int
 group_number(int l)
 {
-	return world_rank / group_size(l);
+    return world_rank / group_size(l);
 }
 
 Array*
 array_distances_from_vp(Array* dataset, number_t vantage_point)
 {
-	Array* distances = (Array*) malloc(sizeof(Array));
-	distances->size = dataset->size;
-	distances->data = (number_t*) malloc(sizeof(number_t) * distances->size);
-	for (int i = 0; i < dataset->size; i++) {
-		distances->data[i] = f+abs(vantage_point - dataset->data[i]); // we calculate the distance of the ith point from the vantage point
-	}
-	return distances;
+    Array* distances = (Array*) malloc(sizeof(Array));
+    distances->size = dataset->size;
+    distances->data = (number_t*) malloc(sizeof(number_t) * distances->size);
+    for (int i = 0; i < dataset->size; i++) {
+        distances->data[i] = fabs(
+          vantage_point - dataset->data[i]); // we calculate the distance of the
+                                             // ith point from the vantage point
+    }
+    return distances;
+}
+
+void
+test_array_distances_from_vp()
+{
+    Array* dataset = array_new_random(5);
+    number_t vp = 4.56f;
+    Array* distances = array_distances_from_vp(dataset, vp);
+    for (int i = 0; i < dataset->size; i++) {
+        printf(
+          "PROCESS %d: vantage_point = %f, point[%d] = %f and distance = %f\n",
+          world_rank, vp, i, dataset->data[i], distances->data[i]);
+    }
+    array_free(dataset);
+    /** @todo Do some actual testing with assert() */
 }
 
 int
 less_than_median(Array* array, number_t vantage_point)
 {
-	int count_points = 0; // counts how many points are closer to vantage point than median.
-	return count_points;
+    int count_points
+      = 0; // counts how many points are closer to vantage point than median.
+    return count_points;
 }
 
 int
@@ -105,7 +124,7 @@ main(int argc, char** argv)
 
     Array* dataset = array_new_random(5);
     int dataset_size = dataset->size * world_size;
-	/*
+
     if (world_rank == 0) {
         float median = masterPart(world_size, world_rank, dataset_size,
                                   dataset->size, dataset->data);
@@ -113,13 +132,6 @@ main(int argc, char** argv)
     } else {
         slavePart(world_rank, dataset->size, dataset->data, dataset_size);
     }
-	*/
-	number_t vp = 4.56f;
-	Array* distances = array_distances_from_vp(dataset, vp);
-	for (int i = 0; i < dataset->size; i++) {
-		printf("PROCESS %d: vantage_point = %f, point[%d] = %f and distance = %f\n", world_rank, vp, i, dataset->data[i], distances->data[i]);
-	}
-
 
     array_free(dataset);
     MPI_Finalize();
