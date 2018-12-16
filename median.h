@@ -115,9 +115,10 @@ validation(float median,
            int partLength,
            int size,
            float* numberPart,
-           int world_rank)
+           int world_rank,
+           MPI_Comm comm)
 {
-    MPI_Bcast(&median, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&median, 1, MPI_INT, 0, comm);
     int countMin = 0;
     int countMax = 0;
     int countEq = 0;
@@ -130,9 +131,9 @@ validation(float median,
         else
             countEq++;
     }
-    MPI_Reduce(&countMax, &sumMax, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&countMin, &sumMin, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&countEq, &sumEq, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&countMax, &sumMax, 1, MPI_INT, MPI_SUM, 0, comm);
+    MPI_Reduce(&countMin, &sumMin, 1, MPI_INT, MPI_SUM, 0, comm);
+    MPI_Reduce(&countEq, &sumEq, 1, MPI_INT, MPI_SUM, 0, comm);
     if (world_rank == 0) {
         if ((sumMax <= size / 2)
             && (sumMin
@@ -183,7 +184,7 @@ masterPart(int world_size,
            int size,
            int partLength,
            float* numberPart,
-	   	   MPI_Comm comm) // MASTER NODE CODE
+           MPI_Comm comm) // MASTER NODE CODE
 {
     int elements, i, keepBigSet, sumSets, finalize, randomNode, k;
     float median, pivot, tempPivot;
@@ -236,9 +237,8 @@ masterPart(int world_size,
         }
         if (checkIdentical != 0) {
             int useNewPivotMax = 0;
-            MPI_Reduce(
-              &useNewPivot, &useNewPivotMax, 1, MPI_INT, MPI_MAX, 0,
-              comm);       // FIRST(OPTIONAL) REDUCE : MAX useNewPivot
+            MPI_Reduce(&useNewPivot, &useNewPivotMax, 1, MPI_INT, MPI_MAX, 0,
+                       comm);        // FIRST(OPTIONAL) REDUCE : MAX useNewPivot
             if (useNewPivotMax != 1) // That means that the only values left are
                                      // equal to the pivot!
             {
@@ -246,7 +246,7 @@ masterPart(int world_size,
                 finalize = 1;
                 MPI_Bcast(&finalize, 1, MPI_INT, 0,
                           comm); // FIRST(OPTIONAL) BROADCAST : WAIT
-                                           // FOR FINALIZE COMMAND OR NOT
+                                 // FOR FINALIZE COMMAND OR NOT
                 gettimeofday(&second, &tzp);
                 if (first.tv_usec > second.tv_usec) {
                     second.tv_usec += 1000000;
@@ -256,7 +256,8 @@ masterPart(int world_size,
                 lapsed.tv_sec = second.tv_sec - first.tv_sec;
                 printf("Time elapsed: %lu, %lu s\n", lapsed.tv_sec,
                        lapsed.tv_usec);
-                validation(median, partLength, size, numberPart, world_rank);
+                validation(median, partLength, size, numberPart, world_rank,
+                           comm);
                 // MPI_Finalize();
                 free(pivotArray);
                 return median;
@@ -267,7 +268,7 @@ masterPart(int world_size,
                 MPI_Bcast(&finalize, 1, MPI_INT, 0, comm);
                 MPI_Gather(&useNewPivot, 1, MPI_INT, pivotArray, 1, MPI_INT, 0,
                            comm); // Gather every value and chose a
-                                            // node to change the pivot.
+                                  // node to change the pivot.
                 for (i = 0; i < activeSize; i++) {
                     if (pivotArray[i] == 1) {
                         if ((randomCounter2 > 1)
@@ -295,8 +296,8 @@ masterPart(int world_size,
         }
         if (useNewPivot != 0)
             MPI_Bcast(&randomNode, 1, MPI_INT, 0,
-                      comm); // THIRD(OPTIONAL) BROADCAST : BROADCAST
-                                       // THE SPECIAL NODE
+                      comm);  // THIRD(OPTIONAL) BROADCAST : BROADCAST
+                              // THE SPECIAL NODE
         if (useNewPivot == 0) // if we didnt choose a special Node, choose the
                               // node that will pick the pivot in a clockwise
                               // manner. Only selects one of the active nodes.
@@ -307,7 +308,7 @@ masterPart(int world_size,
             randomCounter++; // Increase the counter
             MPI_Bcast(&randomNode, 1, MPI_INT, 0,
                       comm); // FIRST BROADCAST : SENDING randomnode,
-                                       // who will chose
+                             // who will chose
         }
         if (randomNode == world_rank) // If i am to choose the pivot.....
         {
@@ -316,16 +317,16 @@ masterPart(int world_size,
                 pivot = arrayToUse[rand() % elements];
                 MPI_Bcast(&pivot, 1, MPI_INT, 0,
                           comm); // SECOND BROADCAST : SENDING PIVOT
-                                           // k ton stelnw sto lao
+                                 // k ton stelnw sto lao
             } else {
                 MPI_Bcast(&tempPivot, 1, MPI_INT, 0,
                           comm); // SECOND BROADCAST : SENDING PIVOT
-                                           // k ton stelnw sto lao
+                                 // k ton stelnw sto lao
                 pivot = tempPivot;
             }
         } else // If not.. wait for the pivot to be received.
             MPI_Bcast(&pivot, 1, MPI_INT, randomNode,
-                      comm); // SECOND BROADCAST : RECEIVING PIVOT
+                      comm);  // SECOND BROADCAST : RECEIVING PIVOT
         if (stillActive == 1) // If i still have values in my array.. proceed
         {
             partition(arrayToUse, elements, pivot, &arraySmall, &arrayBig,
@@ -381,10 +382,9 @@ masterPart(int world_size,
         {
             median = pivot;
             finalize = 1; // dilwnw finalaize =1
-            MPI_Bcast(
-              &finalize, 1, MPI_INT, 0,
-              comm); // to stelnw se olous, oi opoioi an laboun
-                               // finalize =1 tote kaloun MPI finalize k telos
+            MPI_Bcast(&finalize, 1, MPI_INT, 0,
+                      comm); // to stelnw se olous, oi opoioi an laboun
+                             // finalize =1 tote kaloun MPI finalize k telos
             gettimeofday(&second, &tzp);
             if (first.tv_usec > second.tv_usec) {
                 second.tv_usec += 1000000;
@@ -393,7 +393,7 @@ masterPart(int world_size,
             lapsed.tv_usec = second.tv_usec - first.tv_usec;
             lapsed.tv_sec = second.tv_sec - first.tv_sec;
             printf("Time elapsed: %lu, %lu s\n", lapsed.tv_sec, lapsed.tv_usec);
-            validation(median, partLength, size, numberPart, world_rank);
+            validation(median, partLength, size, numberPart, world_rank, comm);
             // MPI_Finalize();
             free(pivotArray);
             return median;
@@ -403,7 +403,7 @@ masterPart(int world_size,
                       // stelnw loipon to 0 pou simainei sunexizoume
         MPI_Bcast(&finalize, 1, MPI_INT, 0,
                   comm); // SECOND BROADCAST : WAIT FOR FINALIZE
-                                   // COMMAND OR NOT
+                         // COMMAND OR NOT
         // edw tous stelnw to keepbigset gia na doun ti tha dialeksoun
         MPI_Bcast(&keepBigSet, 1, MPI_INT, 0,
                   comm); // THIRD BROADCAST: SEND keepBigset boolean
@@ -439,7 +439,7 @@ slavePart(int world_rank,
           int partLength,
           float* numberPart,
           int size,
-	      MPI_Comm comm) // code here is for the cheap slaves :P
+          MPI_Comm comm) // code here is for the cheap slaves :P
 {
     int dropoutflag, elements, i, sumSets, finalize, keepBigSet, randomNode;
     float pivot, tempPivot;
@@ -478,11 +478,12 @@ slavePart(int world_rank,
                        comm);
             MPI_Bcast(&finalize, 1, MPI_INT, 0,
                       comm); // an o master apo to keepbigset k apo to
-                                       // count apofasisei oti teleiwsame mou
-                                       // stelnei 1, alliws 0 sunexizoume
+                             // count apofasisei oti teleiwsame mou
+                             // stelnei 1, alliws 0 sunexizoume
             if (finalize == 1) {
                 float median = 0.0;
-                validation(median, partLength, size, numberPart, world_rank);
+                validation(median, partLength, size, numberPart, world_rank,
+                           comm);
                 // MPI_Finalize();
                 return;
             } else {
@@ -492,11 +493,11 @@ slavePart(int world_rank,
         }
         MPI_Bcast(&randomNode, 1, MPI_INT, 0,
                   comm); // FIRST BROAD CAST : RECEIVING RANDOM NODE,
-                                   // perimenw na dw poios einaito done
+                         // perimenw na dw poios einaito done
         if (randomNode != world_rank) // means I am not the one to chose pivot..
                                       // so I wait to receive the pivot
             MPI_Bcast(&pivot, 1, MPI_INT, randomNode,
-                      comm);     // SECOND BROADCAST : RECEIVING PIVOT
+                      comm);               // SECOND BROADCAST : RECEIVING PIVOT
         else if (randomNode == world_rank) // I am choosing suckers
         {
             if (useNewPivot == 0) {
@@ -504,11 +505,11 @@ slavePart(int world_rank,
                 pivot = arrayToUse[rand() % elements];
                 MPI_Bcast(&pivot, 1, MPI_INT, world_rank,
                           comm); // SECOND BROADCAST : SENDING PIVOT
-                                           // k ton stelnw sto lao
+                                 // k ton stelnw sto lao
             } else {
                 MPI_Bcast(&tempPivot, 1, MPI_INT, world_rank,
                           comm); // SECOND BROADCAST : SENDING PIVOT
-                                           // k ton stelnw sto lao
+                                 // k ton stelnw sto lao
                 pivot = tempPivot;
             }
         }
@@ -526,7 +527,7 @@ slavePart(int world_rank,
         sumSets = 0;
         MPI_Reduce(&endBig, &sumSets, 1, MPI_INT, MPI_SUM, 0,
                    comm); // FIRST REDUCE : SUM OF BIG, stelnw ola ta
-                                    // bigset gia na athroistoun sotn master
+                          // bigset gia na athroistoun sotn master
         MPI_Bcast(&sumSets, 1, MPI_INT, 0, comm);
         if (oldSumSets == sumSets)
             checkIdentical = 1;
@@ -536,24 +537,23 @@ slavePart(int world_rank,
         }
         MPI_Bcast(&finalize, 1, MPI_INT, 0,
                   comm); // an o master apo to keepbigset k apo to
-                                   // count apofasisei oti teleiwsame mou
-                                   // stelnei 1, alliws 0 sunexizoume
+                         // count apofasisei oti teleiwsame mou
+                         // stelnei 1, alliws 0 sunexizoume
         if (finalize == 1) {
             float median = 0;
-            validation(median, partLength, size, numberPart, world_rank);
+            validation(median, partLength, size, numberPart, world_rank, comm);
             // MPI_Finalize();
             return;
         }
-        MPI_Bcast(
-          &keepBigSet, 1, MPI_INT, 0,
-          comm); // THIRD BROADCAST: Receive keepBigset boolean, edw
-                           // lambanw an krataw to mikro i megalo set. afou
-                           // elaba ton keepbigset an eimai active krataw enan
-                           // apo tous duo pinake small h big.. alliws den kanw
-                           // tpt edw antistoixa allazw tous pointers, k
-                           // eksetazw an exw meinei xwris stoixeia tin opoia
-                           // periptwsi sikwnw to dropoutflag k pio katw tha
-                           // dilwsw na ginw inactive
+        MPI_Bcast(&keepBigSet, 1, MPI_INT, 0,
+                  comm); // THIRD BROADCAST: Receive keepBigset boolean, edw
+                         // lambanw an krataw to mikro i megalo set. afou
+                         // elaba ton keepbigset an eimai active krataw enan
+                         // apo tous duo pinake small h big.. alliws den kanw
+                         // tpt edw antistoixa allazw tous pointers, k
+                         // eksetazw an exw meinei xwris stoixeia tin opoia
+                         // periptwsi sikwnw to dropoutflag k pio katw tha
+                         // dilwsw na ginw inactive
         if (stillActive == 1) {
             if (keepBigSet == 1) {
                 if (endBig == 0)
