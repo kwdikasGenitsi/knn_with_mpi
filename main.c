@@ -16,16 +16,44 @@ typedef struct
 int world_size;
 int world_rank;
 
+/**
+ * To know the depth of our tree, we need to calculate log2(x) accurately.
+ * We can't use floating point numbers since we risk getting an off-by-one error
+ * due to floating point accuracy.
+ * We therefore use this GCC bultin, which returns the number of leading 0s in
+ * an integer. On x86 this is done with the BSR instruction.
+ */
+static inline int
+log2i(int x)
+{
+    assert(x > 0);
+    return sizeof(int) * 8 - __builtin_clz(x) - 1;
+}
+
+void
+test_log2i()
+{
+    int n = 1;
+    for (int i = 0; i < 15; i++) {
+        assert(log2i(n) == i);
+        n *= 2;
+    }
+}
+
 float
 masterPart(int world_size,
            int world_rank,
            int size,
            int partLength,
            float* numberPart,
-	   	   MPI_Comm comm);
+           MPI_Comm comm);
 
 void
-slavePart(int world_rank, int partLength, float* numberPart, int size, MPI_Comm comm);
+slavePart(int world_rank,
+          int partLength,
+          float* numberPart,
+          int size,
+          MPI_Comm comm);
 
 Array*
 array_new_random(int size)
@@ -114,10 +142,27 @@ test_partitioning()
     assert(master_rank(2) == 12);
 }
 
+MPI_Comm
+communicator_for_level(int l)
+{
+    MPI_Comm c;
+    MPI_Comm_split(MPI_COMM_WORLD, group_number(l), 0, &c);
+    return c;
+}
+
+void
+split_parallel(int l)
+{
+    MPI_Comm comm = communicator_for_level(l);
+    MPI_Comm_free(&comm);
+}
+
 int
 main(int argc, char** argv)
 {
     test_partitioning();
+    test_log2i();
+
     MPI_Init(&argc, &argv);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -126,12 +171,19 @@ main(int argc, char** argv)
     Array* dataset = array_new_random(5);
     int dataset_size = dataset->size * world_size;
 
+#if 0
+    for (int l = 0; group_size(l) > 1; l++) {
+        split_parallel(l);
+    }
+#endif
+
     if (world_rank == 0) {
         float median = masterPart(world_size, world_rank, dataset_size,
                                   dataset->size, dataset->data, MPI_COMM_WORLD);
         printf("Median: %.2f\n", median);
     } else {
-        slavePart(world_rank, dataset->size, dataset->data, dataset_size, MPI_COMM_WORLD);
+        slavePart(world_rank, dataset->size, dataset->data, dataset_size,
+                  MPI_COMM_WORLD);
     }
 
     array_free(dataset);
