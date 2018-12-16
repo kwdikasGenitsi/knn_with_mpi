@@ -437,7 +437,8 @@ void
 slavePart(int world_rank,
           int partLength,
           float* numberPart,
-          int size) // code here is for the cheap slaves :P
+          int size,
+	  	  long x) // code here is for the cheap slaves :P
 {
     int dropoutflag, elements, i, sumSets, finalize, keepBigSet, randomNode;
     float pivot, tempPivot;
