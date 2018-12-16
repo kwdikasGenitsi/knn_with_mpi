@@ -129,7 +129,8 @@ less_than_median (Array *distances, number_t vantage_point, number_t median)
 
 Array *
 points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
-		     number_t median, int is_process_left, int less_than_median)
+		     number_t median, const int is_process_left,
+		     int less_than_median)
 {
   Array *transfer_buffer = (Array *) malloc (sizeof (*transfer_buffer));
   if (is_process_left)
