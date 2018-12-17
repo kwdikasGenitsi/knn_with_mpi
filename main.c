@@ -119,7 +119,7 @@ less_than_median (Array *distances, number_t vantage_point, number_t median)
     = 0; // counts how many points are closer to vantage point than median.
   for (int i = 0; i < distances->size; i++)
     {
-      if (distances->data[i] <= fabs (vantage_point - median))
+      if (distances->data[i] <= median)
 	{
 	  count_points++;
 	}
@@ -151,7 +151,7 @@ points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
     {
       if (is_process_left)
 	{
-	  if (distances->data[i] > fabs (vantage_point - median))
+	  if (distances->data[i] > median)
 	    {
 	      transfer_buffer->data[k] = dataset->data[i];
 	      k++;
@@ -159,7 +159,7 @@ points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
 	}
       else
 	{
-	  if (distances->data[i] < fabs (vantage_point - median))
+	  if (distances->data[i] <= median)
 	    {
 	      transfer_buffer->data[k] = dataset->data[i];
 	      k++;
@@ -167,6 +167,28 @@ points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
 	}
     }
   return transfer_buffer;
+}
+
+void
+test_points_for_transfer (Array *dataset, Array *distances, number_t median)
+{
+  int vantage_point = 4.04f;
+  Array *transfer_buffer
+    = points_for_transfer (dataset, distances, vantage_point, median, 0,
+			   less_than_median (distances, vantage_point, median));
+  if (world_rank == 0)
+    {
+      printf ("transfer_buffer size is %d\n", transfer_buffer->size);
+      printf ("median distance is %f\n", median);
+      for (int i = 0; i < distances->data[i]; i++)
+	{
+	  printf ("distances[%d] = %f\n", i, distances->data[i]);
+	}
+      for (int i = 0; i < transfer_buffer->size; i++)
+	{
+	  printf ("transfer_buffer[%d] = %f\n", i, transfer_buffer->data[i]);
+	}
+    }
 }
 
 int
@@ -214,6 +236,10 @@ main (int argc, char **argv)
   Array *dataset = array_new_random (5);
   int dataset_size = dataset->size * world_size;
 
+  number_t vantage_point = 5;
+
+  Array *distances = array_distances_from_vp (dataset, vantage_point);
+
 #if 0
     for (int l = 0; group_size(l) > 1; l++) {
         split_parallel(l);
@@ -222,13 +248,16 @@ main (int argc, char **argv)
 
   if (world_rank == 0)
     {
-      float median = masterPart (world_size, world_rank, dataset_size,
-				 dataset->size, dataset->data, MPI_COMM_WORLD);
+
+      float median
+	= masterPart (world_size, world_rank, dataset_size, distances->size,
+		      distances->data, MPI_COMM_WORLD);
       printf ("Median: %.2f\n", median);
+      test_points_for_transfer (dataset, distances, median);
     }
   else
     {
-      slavePart (world_rank, dataset->size, dataset->data, dataset_size,
+      slavePart (world_rank, distances->size, distances->data, dataset_size,
 		 MPI_COMM_WORLD);
     }
 
