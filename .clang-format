@@ -135,4 +135,3 @@ SortIncludes: false
 SpaceAfterCStyleCast: true
 SpaceBeforeParens: Always
 SpacesBeforeTrailingComments: 1
-UseTab: Always

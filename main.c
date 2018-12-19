@@ -52,10 +52,10 @@ test_log2i ()
 }
 
 float masterPart (int world_size, int world_rank, int size, int partLength,
-		  float *numberPart, MPI_Comm comm);
+                  float *numberPart, MPI_Comm comm);
 
 void slavePart (int world_rank, int partLength, float *numberPart, int size,
-		MPI_Comm comm);
+                MPI_Comm comm);
 
 Array *
 array_new_random (int size)
@@ -109,8 +109,8 @@ array_distances_from_vp (Array *dataset, number_t vantage_point)
   for (int i = 0; i < dataset->size; i++)
     {
       distances->data[i] = fabs (
-	vantage_point - dataset->data[i]); // we calculate the distance of the
-					   // ith point from the vantage point
+        vantage_point - dataset->data[i]); // we calculate the distance of the
+                                           // ith point from the vantage point
     }
   return distances;
 }
@@ -124,8 +124,8 @@ test_array_distances_from_vp ()
   for (int i = 0; i < dataset->size; i++)
     {
       printf (
-	"PROCESS %d: vantage_point = %f, point[%d] = %f and distance = %f\n",
-	world_rank, vp, i, dataset->data[i], distances->data[i]);
+        "PROCESS %d: vantage_point = %f, point[%d] = %f and distance = %f\n",
+        world_rank, vp, i, dataset->data[i], distances->data[i]);
     }
   array_free (dataset);
   /** @todo Do some actual testing with assert() */
@@ -139,29 +139,29 @@ less_than_median (Array *distances, number_t vantage_point, number_t median)
   for (int i = 0; i < distances->size; i++)
     {
       if (distances->data[i] <= median)
-	{
-	  count_points++;
-	}
+        {
+          count_points++;
+        }
     }
   return count_points;
 }
 
 Array *
 points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
-		     number_t median, const int is_process_left,
-		     int less_than_median)
+                     number_t median, const int is_process_left,
+                     int less_than_median)
 {
   Array *transfer_buffer = (Array *) malloc (sizeof (*transfer_buffer));
   if (is_process_left)
     {
       transfer_buffer->data = (number_t *) malloc (
-	sizeof (number_t *) * (dataset->size - less_than_median));
+        sizeof (number_t *) * (dataset->size - less_than_median));
       transfer_buffer->size = dataset->size - less_than_median;
     }
   else
     {
       transfer_buffer->data
-	= (number_t *) malloc (sizeof (number_t *) * less_than_median);
+        = (number_t *) malloc (sizeof (number_t *) * less_than_median);
       transfer_buffer->size = less_than_median;
     }
 
@@ -169,21 +169,21 @@ points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
   for (int i = 0; i < dataset->size; i++)
     {
       if (is_process_left)
-	{
-	  if (distances->data[i] > median)
-	    {
-	      transfer_buffer->data[k] = dataset->data[i];
-	      k++;
-	    }
-	}
+        {
+          if (distances->data[i] > median)
+            {
+              transfer_buffer->data[k] = dataset->data[i];
+              k++;
+            }
+        }
       else
-	{
-	  if (distances->data[i] <= median)
-	    {
-	      transfer_buffer->data[k] = dataset->data[i];
-	      k++;
-	    }
-	}
+        {
+          if (distances->data[i] <= median)
+            {
+              transfer_buffer->data[k] = dataset->data[i];
+              k++;
+            }
+        }
     }
   return transfer_buffer;
 }
@@ -194,19 +194,19 @@ test_points_for_transfer (Array *dataset, Array *distances, number_t median)
   int vantage_point = 4.04f;
   Array *transfer_buffer
     = points_for_transfer (dataset, distances, vantage_point, median, 0,
-			   less_than_median (distances, vantage_point, median));
+                           less_than_median (distances, vantage_point, median));
   if (world_rank == 0)
     {
       printf ("transfer_buffer size is %d\n", transfer_buffer->size);
       printf ("median distance is %f\n", median);
       for (int i = 0; i < distances->data[i]; i++)
-	{
-	  printf ("distances[%d] = %f\n", i, distances->data[i]);
-	}
+        {
+          printf ("distances[%d] = %f\n", i, distances->data[i]);
+        }
       for (int i = 0; i < transfer_buffer->size; i++)
-	{
-	  printf ("transfer_buffer[%d] = %f\n", i, transfer_buffer->data[i]);
-	}
+        {
+          printf ("transfer_buffer[%d] = %f\n", i, transfer_buffer->data[i]);
+        }
     }
 }
 
