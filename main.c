@@ -16,6 +16,16 @@ typedef struct
 int world_size;
 int world_rank;
 
+typedef struct
+{
+  number_t vantage_point;
+  number_t median;
+} VPNode;
+
+VPNode *vp_stack;
+int vp_stack_length;
+int vp_stack_top;
+
 /**
  * To know the depth of our tree, we need to calculate log2(x) accurately.
  * We can't use floating point numbers since we risk getting an off-by-one error
@@ -69,12 +79,21 @@ array_free (Array *array)
   free (array);
 }
 
+/**
+ * Returns the number of processes in every working group, at step l.
+ * For instance at the 2nd stage (l = 1), 4 processes would yield a
+ * group size of 2.
+ */
 int
 group_size (int l)
 {
   return world_size / (1 << l);
 }
 
+/**
+ * Should be the same for all processes within the same working group.
+ * To be used with functions such as MPI_Comm_split().
+ */
 int
 group_number (int l)
 {
@@ -219,6 +238,12 @@ void
 split_parallel (int l)
 {
   MPI_Comm comm = communicator_for_level (l);
+
+  /* Pick a vantage point and announce it. */
+  /* Find the median. */
+  /* Split the free from the commies. */
+  /* Push the vantage point and the median onto the stack. */
+
   MPI_Comm_free (&comm);
 }
 
@@ -236,31 +261,20 @@ main (int argc, char **argv)
   Array *dataset = array_new_random (5);
   int dataset_size = dataset->size * world_size;
 
+  vp_stack_length = log2i (dataset_size);
+  vp_stack_top = 0;
+  vp_stack = malloc (sizeof (*vp_stack));
+
   number_t vantage_point = 5;
 
   Array *distances = array_distances_from_vp (dataset, vantage_point);
 
-#if 0
-    for (int l = 0; group_size(l) > 1; l++) {
-        split_parallel(l);
-    }
-#endif
-
-  if (world_rank == 0)
+  for (int l = 0; group_size (l) > 1; l++)
     {
-
-      float median
-	= masterPart (world_size, world_rank, dataset_size, distances->size,
-		      distances->data, MPI_COMM_WORLD);
-      printf ("Median: %.2f\n", median);
-      test_points_for_transfer (dataset, distances, median);
-    }
-  else
-    {
-      slavePart (world_rank, distances->size, distances->data, dataset_size,
-		 MPI_COMM_WORLD);
+      split_parallel (l);
     }
 
+  free (vp_stack);
   array_free (dataset);
   MPI_Finalize ();
   return 0;
