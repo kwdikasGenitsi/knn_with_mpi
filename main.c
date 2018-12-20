@@ -1,16 +1,12 @@
 #include "median.h"
 #include "vp_stack.h"
+#include "vp_master_buffer.h"
 #include <assert.h>
 #include <math.h>
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef struct
-{
-  number_t *data;
-  int size;
-} Array;
+#include <string.h>
 
 int world_size;
 int world_rank;
@@ -40,6 +36,15 @@ test_log2i ()
     }
 }
 
+void
+print_array (Array *array)
+{
+  for (int i = 0; i < array->size; i++)
+    {
+      printf ("element %d = %f\n", i, array->data[i]);
+    }
+}
+
 float masterPart (int world_size, int world_rank, int size, int partLength,
                   float *numberPart, MPI_Comm comm);
 
@@ -59,13 +64,6 @@ array_new_random (int size)
     array->data[i]
       = world_rank * size + i; // (number_t)(rand() - rand()) * 0.05f;
   return array;
-}
-
-void
-array_free (Array *array)
-{
-  free (array->data);
-  free (array);
 }
 
 /**
@@ -178,6 +176,33 @@ points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
 }
 
 void
+test_master_buffer_functionality ()
+{
+  Array *array = array_new (10);
+
+  for (int i = 0; i < array->size; i++)
+    {
+      array->data[i] = i;
+    }
+  printf ("array1 elements are:\n");
+  print_array (array);
+  MasterBuffer *master_buffer = master_buffer_new (20);
+  master_buffer_fill (master_buffer, array);
+  for (int i = 0; i < array->size; i++)
+    {
+      array->data[i] = array->size + i;
+    }
+  printf ("array2 elements are:\n");
+  print_array (array);
+  master_buffer_fill (master_buffer, array);
+  printf ("master buffer's elements are:\n");
+  print_array (master_buffer->buffer);
+
+  array_free (array);
+  master_buffer_free (master_buffer);
+}
+
+void
 test_points_for_transfer (Array *dataset, Array *distances, number_t median)
 {
   int vantage_point = 4.04f;
@@ -224,14 +249,42 @@ communicator_for_level (int l)
 }
 
 void
-split_parallel (int l)
+split_parallel (Array *dataset, VpStack *vp_stack, int l)
 {
   MPI_Comm comm = communicator_for_level (l);
+  int rank;
+  int comm_size;
+  MPI_Comm_rank (comm, &rank);
+  MPI_Comm_size (comm, &comm_size);
+
+  int chunk_size = (dataset->size) / (1 << l);
 
   /* Pick a vantage point and announce it. */
+  int vp_index = rand () % chunk_size;
+  number_t vp_value = dataset->data[vp_index];
+  MPI_Bcast (&vp_value, 1, MPI_UINT8_T, 0,
+             comm); // MPI_NUMBER_T CHANGED TO MPI_UINT8_T
+
+  /* Find the distances from the VP. */
+  Array *distances = array_distances_from_vp (dataset, vp_value);
+
   /* Find the median. */
+  float median = 0.0f;
+  if (rank == 0)
+    {
+      /** @todo Use masterPart() to find the median. */
+    }
+  else
+    {
+      /** @todo Invoke slavePart() here. */
+    }
+
   /* Split the free from the commies. */
+  free (distances);
+
   /* Push the vantage point and the median onto the stack. */
+  vp_stack_push (vp_stack,
+                 (VpNode){.vantage_point = vp_value, .median = median});
 
   MPI_Comm_free (&comm);
 }
@@ -245,40 +298,40 @@ split_parallel (int l)
 void
 split_serial (Array *dataset, int offset, int l)
 {
-  int chunk_size = (dataset->size - offset) / (1 << l);
-
-  /* Pick a vantage point. */
-  int vp_index = rand () % chunk_size + offset;
-  int vp_value = dataset->data[vp_index];
-
-  /* Find the median distance. */
+  /** @todo */
 }
 
 int
 main (int argc, char **argv)
 {
-  test_partitioning ();
-  test_log2i ();
-  test_vp_stack ();
-
   MPI_Init (&argc, &argv);
 
   MPI_Comm_rank (MPI_COMM_WORLD, &world_rank);
   MPI_Comm_size (MPI_COMM_WORLD, &world_size);
 
+  /* If the tests are invoked, have the root run them. */
+  if (argc == 2 && (strcmp (argv[1], "test") == 0))
+    {
+      if (world_rank == 0)
+        {
+          test_partitioning ();
+          test_log2i ();
+          test_vp_stack ();
+          test_master_buffer_functionality ();
+          printf ("All tests sucessful.\n");
+        }
+      return EXIT_SUCCESS;
+    }
+
   Array *dataset = array_new_random (5);
-  int dataset_size = dataset->size * world_size;
-
-  number_t vantage_point = 5;
-
-  Array *distances = array_distances_from_vp (dataset, vantage_point);
+  VpStack *vp_stack = vp_stack_new (log2i (dataset->size * world_size));
 
   for (int l = 0; group_size (l) > 1; l++)
     {
-      split_parallel (l);
+      split_parallel (dataset, vp_stack, l);
     }
 
   array_free (dataset);
   MPI_Finalize ();
-  return 0;
+  return EXIT_SUCCESS;
 }
