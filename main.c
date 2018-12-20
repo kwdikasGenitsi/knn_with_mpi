@@ -1,4 +1,5 @@
 #include "median.h"
+#include "vp_master_buffer.h"
 #include "vp_stack.h"
 #include <assert.h>
 #include <math.h>
@@ -6,12 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-typedef struct
-{
-  number_t *data;
-  int size;
-} Array;
 
 int world_size;
 int world_rank;
@@ -41,6 +36,15 @@ test_log2i ()
     }
 }
 
+void
+print_array (Array *array)
+{
+  for (int i = 0; i < array->size; i++)
+    {
+      printf ("element %d = %f\n", i, array->data[i]);
+    }
+}
+
 float masterPart (int world_size, int world_rank, int size, int partLength,
                   float *numberPart, MPI_Comm comm);
 
@@ -60,13 +64,6 @@ array_new_random (int size)
     array->data[i]
       = world_rank * size + i; // (number_t)(rand() - rand()) * 0.05f;
   return array;
-}
-
-void
-array_free (Array *array)
-{
-  free (array->data);
-  free (array);
 }
 
 /**
@@ -176,6 +173,33 @@ points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
         }
     }
   return transfer_buffer;
+}
+
+void
+test_master_buffer_functionality ()
+{
+  Array *array = array_new (10);
+
+  for (int i = 0; i < array->size; i++)
+    {
+      array->data[i] = i;
+    }
+  printf ("array1 elements are:\n");
+  print_array (array);
+  MasterBuffer *master_buffer = master_buffer_new (20);
+  master_buffer_fill (master_buffer, array);
+  for (int i = 0; i < array->size; i++)
+    {
+      array->data[i] = array->size + i;
+    }
+  printf ("array2 elements are:\n");
+  print_array (array);
+  master_buffer_fill (master_buffer, array);
+  printf ("master buffer's elements are:\n");
+  print_array (master_buffer->buffer);
+
+  array_free (array);
+  master_buffer_free (master_buffer);
 }
 
 void
@@ -292,6 +316,7 @@ main (int argc, char **argv)
           test_partitioning ();
           test_log2i ();
           test_vp_stack ();
+          test_master_buffer_functionality ();
           printf ("All tests sucessful.\n");
         }
       return EXIT_SUCCESS;
