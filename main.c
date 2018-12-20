@@ -1,11 +1,10 @@
 #include "median.h"
+#include "vp_stack.h"
 #include <assert.h>
 #include <math.h>
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef float number_t;
 
 typedef struct
 {
@@ -15,16 +14,6 @@ typedef struct
 
 int world_size;
 int world_rank;
-
-typedef struct
-{
-  number_t vantage_point;
-  number_t median;
-} VPNode;
-
-VPNode *vp_stack;
-int vp_stack_length;
-int vp_stack_top;
 
 /**
  * To know the depth of our tree, we need to calculate log2(x) accurately.
@@ -247,11 +236,30 @@ split_parallel (int l)
   MPI_Comm_free (&comm);
 }
 
+/**
+ * Generates one level of the VP tree serially.
+ * @param dataset The global dataset.
+ * @param offset The start of the chunk to be processed.
+ * @param l The depth of the node (determines the chunk size).
+ */
+void
+split_serial (Array *dataset, int offset, int l)
+{
+  int chunk_size = (dataset->size - offset) / (1 << l);
+
+  /* Pick a vantage point. */
+  int vp_index = rand () % chunk_size + offset;
+  int vp_value = dataset->data[vp_index];
+
+  /* Find the median distance. */
+}
+
 int
 main (int argc, char **argv)
 {
   test_partitioning ();
   test_log2i ();
+  test_vp_stack ();
 
   MPI_Init (&argc, &argv);
 
@@ -260,10 +268,6 @@ main (int argc, char **argv)
 
   Array *dataset = array_new_random (5);
   int dataset_size = dataset->size * world_size;
-
-  vp_stack_length = log2i (dataset_size);
-  vp_stack_top = 0;
-  vp_stack = malloc (sizeof (*vp_stack));
 
   number_t vantage_point = 5;
 
@@ -274,7 +278,6 @@ main (int argc, char **argv)
       split_parallel (l);
     }
 
-  free (vp_stack);
   array_free (dataset);
   MPI_Finalize ();
   return 0;
