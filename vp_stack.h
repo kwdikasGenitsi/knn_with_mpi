@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 typedef float number_t;
+#define MPI_NUMBER_T MPI_FLOAT
 
 typedef struct
 {
