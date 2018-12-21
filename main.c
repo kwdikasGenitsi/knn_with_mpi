@@ -178,28 +178,30 @@ points_for_transfer (Array *dataset, Array *distances, number_t vantage_point,
 void
 test_master_buffer_functionality ()
 {
-  Array *array = array_new (10);
-
-  for (int i = 0; i < array->size; i++)
+  Array *input_array = array_new (3);
+  MasterBuffer *master_buffer = master_buffer_new (9);
+  int k = 0, l = 0;
+  for (int i = 0; i < 15; i++)
     {
-      array->data[i] = i;
+      input_array->data[k] = i;
+      k++;
+      if (k == 3)
+        {
+          l++;
+          k = 0;
+          master_buffer_fill (master_buffer, input_array);
+        }
+      if (l == 2)
+        {
+          l = 0;
+          master_buffer_throw (master_buffer, 3);
+        }
     }
-  printf ("array1 elements are:\n");
-  print_array (array);
-  MasterBuffer *master_buffer = master_buffer_new (20);
-  master_buffer_fill (master_buffer, array);
-  for (int i = 0; i < array->size; i++)
+  int test_array[9] = {0, 1, 2, 6, 7, 8, 12, 13, 14};
+  for (int i = 0; i < 9; i++)
     {
-      array->data[i] = array->size + i;
+      assert (test_array[i] == (int) master_buffer->buffer->data[i]);
     }
-  printf ("array2 elements are:\n");
-  print_array (array);
-  master_buffer_fill (master_buffer, array);
-  printf ("master buffer's elements are:\n");
-  print_array (master_buffer->buffer);
-
-  array_free (array);
-  master_buffer_free (master_buffer);
 }
 
 void
