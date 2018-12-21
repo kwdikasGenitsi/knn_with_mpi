@@ -194,7 +194,8 @@ test_master_buffer_functionality ()
       if (l == 2)
         {
           l = 0;
-          master_buffer_throw (master_buffer, 3);
+          array_free (input_array);
+          input_array = master_buffer_throw (master_buffer, 3);
         }
     }
   int test_array[9] = {0, 1, 2, 6, 7, 8, 12, 13, 14};
@@ -202,6 +203,8 @@ test_master_buffer_functionality ()
     {
       assert (test_array[i] == (int) master_buffer->buffer->data[i]);
     }
+  array_free (input_array);
+  master_buffer_free (master_buffer);
 }
 
 void
