@@ -197,7 +197,19 @@ test_master_buffer_functionality ()
   master_buffer_fill (master_buffer, array);
   printf ("master buffer's elements are:\n");
   print_array (master_buffer->buffer);
-
+  Array *array2 = array_new (3);
+  array2 = master_buffer_throw (master_buffer, 3);
+  printf ("array3 elements are:\n");
+  print_array (array2);
+  for (int i = 0; i < array->size; i++)
+    {
+      array2->data[i] = i;
+    }
+  printf ("array4 elements are:\n");
+  print_array (array2);
+  master_buffer_fill (master_buffer, array2);
+  printf ("master buffer's elements are:\n");
+  print_array (master_buffer->buffer);
   array_free (array);
   master_buffer_free (master_buffer);
 }
