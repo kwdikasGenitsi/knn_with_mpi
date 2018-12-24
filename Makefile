@@ -1,6 +1,6 @@
 CC=mpicc
 CFLAGS=-Wall -Wextra
-OBJECTS=main.o vp_stack.o vp_master_buffer.o
+OBJECTS=main.o vp_stack.o vp_master_buffer.o array.o
 
 all: vp
 

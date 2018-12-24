@@ -36,15 +36,6 @@ test_log2i ()
     }
 }
 
-void
-print_array (Array *array)
-{
-  for (int i = 0; i < array->size; i++)
-    {
-      printf ("element %d = %f\n", i, array->data[i]);
-    }
-}
-
 float masterPart (int world_size, int world_rank, int size, int partLength,
                   float *numberPart, MPI_Comm comm);
 

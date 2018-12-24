@@ -1,31 +1,18 @@
 #pragma once
 
-typedef float number_t;
-
-
-typedef struct
-{
-  number_t *data;
-  int size;
-} Array;
-
-Array* array_new(int size);
-void array_free (Array *array);
-
-
+#include "array.h"
 
 typedef struct
 {
-	Array *buffer;
-	int top;
+  Array *buffer;
+  int top;
 } MasterBuffer;
 
 int free_space (MasterBuffer *master_buffer);
 int filled_space (MasterBuffer *master_buffer);
 
+MasterBuffer *master_buffer_new (int size);
+void master_buffer_free (MasterBuffer *master_buffer);
 
-MasterBuffer* master_buffer_new(int size);
-void master_buffer_free(MasterBuffer *master_buffer);
-
-int master_buffer_fill(MasterBuffer *master_buffer, Array *new_points);
-Array* master_buffer_throw(MasterBuffer *master_buffer, int number_of_points);
+int master_buffer_fill (MasterBuffer *master_buffer, Array *new_points);
+Array *master_buffer_throw (MasterBuffer *master_buffer, int number_of_points);

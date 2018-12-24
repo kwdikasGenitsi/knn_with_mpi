@@ -1,22 +1,6 @@
 #include "vp_master_buffer.h"
-#include <stdlib.h>
 #include <stdio.h>
-
-void
-array_free (Array *array)
-{
-  free (array->data);
-  free (array);
-}
-
-Array *
-array_new (int size)
-{
-  Array *array = (Array *) malloc (sizeof (*array));
-  array->data = (number_t *) malloc (sizeof (number_t) * size);
-  array->size = size;
-  return array;
-}
+#include <stdlib.h>
 
 MasterBuffer *
 master_buffer_new (int size)
