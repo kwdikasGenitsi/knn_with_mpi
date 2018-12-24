@@ -20,6 +20,8 @@ typedef struct
 	int top;
 } MasterBuffer;
 
+int free_space (MasterBuffer *master_buffer);
+int filled_space (MasterBuffer *master_buffer);
 
 
 MasterBuffer* master_buffer_new(int size);

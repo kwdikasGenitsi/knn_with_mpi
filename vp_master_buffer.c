@@ -34,14 +34,25 @@ master_buffer_free (MasterBuffer *master_buffer)
   free (master_buffer);
 }
 
+int
+free_space (MasterBuffer *master_buffer)
+{
+  return master_buffer->buffer->size - master_buffer->top;
+}
+
+int
+filled_space (MasterBuffer *master_buffer)
+{
+  return master_buffer->top;
+}
+
 // adds the points of an array to the master_buffer if there is enough space.
 // returns 0 if master_buffer has been filled successfully or -1 if there was no
 // space.
 int
 master_buffer_fill (MasterBuffer *master_buffer, Array *new_points)
 {
-  int free_space = master_buffer->buffer->size - master_buffer->top;
-  if (free_space >= new_points->size)
+  if (free_space (master_buffer) >= new_points->size)
     {
       int k = 0;
       for (int i = master_buffer->top;
@@ -64,7 +75,7 @@ Array *
 master_buffer_throw (MasterBuffer *master_buffer, int number_of_points)
 {
 
-  if (master_buffer->top >= number_of_points)
+  if (filled_space (master_buffer) >= number_of_points)
     {
       Array *output_array = array_new (number_of_points);
       int k = master_buffer->top - 1;

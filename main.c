@@ -229,6 +229,58 @@ test_points_for_transfer (Array *dataset, Array *distances, number_t median)
     }
 }
 
+void
+transfer_points_subteam (Array *dataset, Array *distances,
+                         number_t vantage_point, number_t median,
+                         MPI_Comm subteam_comm, MPI_Comm subteam_rank,
+                         MPI_Comm subteam_size)
+{
+  // -- ------split it on another function later-------------------------------
+  int less_than_median_int
+    = less_than_median (distances, vantage_point, median);
+  int *less_than_median_array = NULL;
+  MasterBuffer *master_buffer = NULL;
+  if (subteam_rank == 0)
+    {
+      less_than_median_array = (int *) malloc (sizeof (int) * subteam_size);
+      master_buffer = master_buffer_new (2 * subteam_size);
+    }
+  MPI_Gather (&less_than_median_int, 1, MPI_INT, less_than_median_array, 1,
+              MPI_INT, 0, subteam_comm);
+  // -------------------------------------------------------------------------
+  int is_process_left = 1 - ((subteam_size / 2) + subteam_rank) / subteam_size;
+  Array *points_to_send
+    = points_for_transfer (dataset, distances, vantage_point, median,
+                           is_process_left, less_than_median_int);
+  Array *recieved_points = array_new (points_to_send->size);
+  if (subteam_rank == 0)
+    {
+      int recieving_process = 0, sending_process = subteam_size / 2;
+      while (recieving_process < subteam_size / 2
+             || sending_process < subteam_size)
+        {
+          request_master_recieve (&sending_process, master_buffer,
+                                  less_than_median_array, subteam_comm,
+                                  subteam_size);
+        }
+    }
+  else if (subteam_rank >= subteam_size / 2)
+    {
+      MPI_Send (points_to_send->data, points_to_send->size, MPI_FLOAT, 0, 0,
+                subteam_comm);
+    }
+}
+
+void
+request_master_recieve (int *sending_process, MasterBuffer *master_buffer,
+                        int *less_than_median_array, MPI_Comm subteam_comm,
+                        MPI_Comm subteam_size)
+{
+  // if (sending_process >= subteam_size
+  //  || less_than_median_array[sending_process]) // !! carefull with sending
+  // size!
+}
+
 int
 master_rank (int l)
 {
