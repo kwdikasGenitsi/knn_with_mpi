@@ -3,13 +3,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-void
-array_free (Array *array)
-{
-  free (array->data);
-  free (array);
-}
-
 Array *
 array_new (size_t size)
 {
@@ -17,6 +10,28 @@ array_new (size_t size)
   array->data = (number_t *) malloc (sizeof (number_t) * size);
   array->size = size;
   return array;
+}
+
+void
+array_free (Array *array)
+{
+  free (array->data);
+  free (array);
+}
+
+ArraySlice *
+array_get_slice (Array *array, size_t offset, size_t length)
+{
+  ArraySlice *slice = malloc (sizeof (*slice));
+  slice->data = array->data + offset;
+  slice->size = length;
+  return slice;
+}
+
+void
+array_slice_free (ArraySlice *slice)
+{
+  free (slice);
 }
 
 void

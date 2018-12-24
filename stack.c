@@ -52,7 +52,7 @@ void
 stack_pop_array (Stack *stack, Array *array, size_t offset, size_t length)
 {
   /* Make sure the array can store the result. */
-  assert (array->size >= length);
+  assert ((array->size - offset) >= length);
 
   /* Prevent an underflow. */
   assert (stack->top >= length);

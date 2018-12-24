@@ -16,6 +16,12 @@ typedef struct
   size_t size;    /**< The number of elements the array can store. */
 } Array;
 
+typedef struct
+{
+  number_t *data;
+  size_t size;
+} ArraySlice;
+
 /**
  * Creates a new array.
  * @param size The number of elements the array must hold.
@@ -23,6 +29,20 @@ typedef struct
  *         with array_free().
  */
 Array *array_new (size_t size);
+
+/**
+ * Creates a new array that points to a subarray within the original Array.
+ * We call this a "slice", in accordance with Rust terminology.
+ * Slices are to be freed with array_slice_free(), so that the original array
+ * will not be destroyed.
+ * Slice identifiers should be prefixed with sl_.
+ */
+ArraySlice *array_slice_new (Array *array, size_t offset, size_t length);
+
+/**
+ * Frees a slice created with array_get_slice().
+ */
+void array_slice_free (ArraySlice *slice);
 
 /**
  * Frees the memory occupied by an Array.
