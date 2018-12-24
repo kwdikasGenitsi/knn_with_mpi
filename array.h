@@ -7,6 +7,8 @@
  * Defined here so that it can be changed to a double.
  */
 typedef float number_t;
+#define MPI_NUMBER_T MPI_FLOAT
+#define PRINTF_NUMBER_FMT "%f"
 
 typedef struct
 {
@@ -33,3 +35,8 @@ void array_free (Array *array);
  * @param array The array to dump.
  */
 void array_dump (Array *array);
+
+/**
+ * Fills the array with random values.
+ */
+void array_fill_random (Array *array);

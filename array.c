@@ -1,6 +1,7 @@
 #include "array.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 void
 array_free (Array *array)
@@ -24,7 +25,17 @@ array_dump (Array *array)
   printf ("[");
   for (size_t i = 0; i < array->size; i++)
     {
-      printf ("%s%f", i > 0 ? ", " : "", array->data[i]);
+      printf ("%s" PRINTF_NUMBER_FMT, i > 0 ? ", " : "", array->data[i]);
     }
   printf ("]\n");
+}
+
+void
+array_fill_random (Array *array)
+{
+  int cal = 5;
+  srand ((cal + 1) * time (NULL));
+
+  for (size_t i = 0; i < array->size; i++)
+    array->data[i] = (number_t) (rand () - rand ()) * 0.05f;
 }

@@ -1,6 +1,6 @@
 #include "median.h"
+#include "stack.h"
 #include "vp_master_buffer.h"
-#include "vp_stack.h"
 #include <assert.h>
 #include <math.h>
 #include <mpi.h>
@@ -42,21 +42,6 @@ float masterPart (int world_size, int world_rank, int size, int partLength,
 void slavePart (int world_rank, int partLength, float *numberPart, int size,
                 MPI_Comm comm);
 
-Array *
-array_new_random (int size)
-{
-  Array *array = (Array *) malloc (sizeof (*array));
-  array->size = size;
-  array->data = (number_t *) malloc (sizeof (number_t) * size);
-  int cal = 5;
-  srand ((cal + 1) * time (NULL));
-
-  for (int i = 0; i < size; i++)
-    array->data[i]
-      = world_rank * size + i; // (number_t)(rand() - rand()) * 0.05f;
-  return array;
-}
-
 /**
  * Returns the number of processes in every working group, at step l.
  * For instance at the 2nd stage (l = 1), 4 processes would yield a
@@ -96,7 +81,8 @@ array_distances_from_vp (Array *dataset, number_t vantage_point)
 void
 test_array_distances_from_vp ()
 {
-  Array *dataset = array_new_random (5);
+  Array *dataset = array_new (5);
+  array_fill_random (dataset);
   number_t vp = 4.56f;
   Array *distances = array_distances_from_vp (dataset, vp);
   for (int i = 0; i < dataset->size; i++)
@@ -297,7 +283,7 @@ communicator_for_level (int l)
 }
 
 void
-split_parallel (Array *dataset, VpStack *vp_stack, int l)
+split_parallel (Array *dataset, Stack *vp_stack, Stack *median_stack, int l)
 {
   MPI_Comm comm = communicator_for_level (l);
   int rank;
@@ -330,8 +316,8 @@ split_parallel (Array *dataset, VpStack *vp_stack, int l)
   free (distances);
 
   /* Push the vantage point and the median onto the stack. */
-  vp_stack_push (vp_stack,
-                 (VpNode){.vantage_point = vp_value, .median = median});
+  stack_push (vp_stack, vp_value);
+  stack_push (median_stack, median);
 
   MPI_Comm_free (&comm);
 }
@@ -363,19 +349,22 @@ main (int argc, char **argv)
         {
           test_partitioning ();
           test_log2i ();
-          test_vp_stack ();
+          test_stack ();
           test_master_buffer_functionality ();
           printf ("All tests sucessful.\n");
         }
       return EXIT_SUCCESS;
     }
 
-  Array *dataset = array_new_random (5);
-  VpStack *vp_stack = vp_stack_new (log2i (dataset->size * world_size));
+  Array *dataset = array_new (5);
+  array_fill_random (dataset);
+  int tree_depth = log2i (dataset->size * world_size);
+  Stack *vp_stack = stack_new (tree_depth);
+  Stack *median_stack = stack_new (tree_depth);
 
   for (int l = 0; group_size (l) > 1; l++)
     {
-      split_parallel (dataset, vp_stack, l);
+      split_parallel (dataset, vp_stack, median_stack, l);
     }
 
   array_free (dataset);
