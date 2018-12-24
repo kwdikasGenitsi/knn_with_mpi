@@ -1,6 +1,7 @@
 #include "median.h"
 #include "stack.h"
 #include "vp_master_buffer.h"
+#include "vp_tree_local.h"
 #include <assert.h>
 #include <math.h>
 #include <mpi.h>
@@ -10,20 +11,6 @@
 
 int world_size;
 int world_rank;
-
-/**
- * To know the depth of our tree, we need to calculate log2(x) accurately.
- * We can't use floating point numbers since we risk getting an off-by-one error
- * due to floating point accuracy.
- * We therefore use this GCC bultin, which returns the number of leading 0s in
- * an integer. On x86 this is done with the BSR instruction.
- */
-static inline int
-log2i (int x)
-{
-  assert (x > 0);
-  return sizeof (int) * 8 - __builtin_clz (x) - 1;
-}
 
 void
 test_log2i ()
@@ -205,7 +192,7 @@ test_points_for_transfer (Array *dataset, Array *distances, number_t median)
         }
     }
 }
-
+#if 0
 void
 transfer_points_subteam (Array *dataset, Array *distances,
                          number_t vantage_point, number_t median,
@@ -257,6 +244,7 @@ request_master_recieve (int *sending_process, MasterBuffer *master_buffer,
   //  || less_than_median_array[sending_process]) // !! carefull with sending
   // size!
 }
+#endif
 
 int
 master_rank (int l)
@@ -322,18 +310,6 @@ split_parallel (Array *dataset, Stack *vp_stack, Stack *median_stack, int l)
   MPI_Comm_free (&comm);
 }
 
-/**
- * Generates one level of the VP tree serially.
- * @param dataset The global dataset.
- * @param offset The start of the chunk to be processed.
- * @param l The depth of the node (determines the chunk size).
- */
-void
-split_serial (Array *dataset, int offset, int l)
-{
-  /** @todo */
-}
-
 int
 main (int argc, char **argv)
 {
@@ -351,6 +327,7 @@ main (int argc, char **argv)
           test_log2i ();
           test_stack ();
           test_master_buffer_functionality ();
+          test_vp_tree_local ();
           printf ("All tests sucessful.\n");
         }
       return EXIT_SUCCESS;

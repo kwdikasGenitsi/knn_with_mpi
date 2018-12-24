@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <stddef.h>
 
 /**
@@ -33,16 +34,9 @@ Array *array_new (size_t size);
 /**
  * Creates a new array that points to a subarray within the original Array.
  * We call this a "slice", in accordance with Rust terminology.
- * Slices are to be freed with array_slice_free(), so that the original array
- * will not be destroyed.
- * Slice identifiers should be prefixed with sl_.
+ * Slices are allocated statically and need not be freed.
  */
-ArraySlice *array_slice_new (Array *array, size_t offset, size_t length);
-
-/**
- * Frees a slice created with array_get_slice().
- */
-void array_slice_free (ArraySlice *slice);
+ArraySlice array_get_slice (Array *array, size_t offset, size_t length);
 
 /**
  * Frees the memory occupied by an Array.
@@ -56,6 +50,8 @@ void array_free (Array *array);
  */
 void array_dump (Array *array);
 
+void array_slice_dump (ArraySlice slice);
+
 /**
  * Fills the array with random values.
  */
@@ -65,3 +61,17 @@ void array_fill_random (Array *array);
 size_t heap_parent_of (size_t i);
 size_t heap_left_child_of (size_t i);
 size_t heap_right_child_of (size_t i);
+
+/**
+ * To know the depth of our tree, we need to calculate log2(x) accurately.
+ * We can't use floating point numbers since we risk getting an off-by-one error
+ * due to floating point accuracy.
+ * We therefore use this GCC bultin, which returns the number of leading 0s in
+ * an integer. On x86 this is done with the BSR instruction.
+ */
+static inline int
+log2i (int x)
+{
+  assert (x > 0);
+  return sizeof (int) * 8 - __builtin_clz (x) - 1;
+}

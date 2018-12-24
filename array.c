@@ -19,12 +19,12 @@ array_free (Array *array)
   free (array);
 }
 
-ArraySlice *
+ArraySlice
 array_get_slice (Array *array, size_t offset, size_t length)
 {
-  ArraySlice *slice = malloc (sizeof (*slice));
-  slice->data = array->data + offset;
-  slice->size = length;
+  ArraySlice slice;
+  slice.data = array->data + offset;
+  slice.size = length - offset;
   return slice;
 }
 
@@ -41,6 +41,17 @@ array_dump (Array *array)
   for (size_t i = 0; i < array->size; i++)
     {
       printf ("%s" PRINTF_NUMBER_FMT, i > 0 ? ", " : "", array->data[i]);
+    }
+  printf ("]\n");
+}
+
+void
+array_slice_dump (ArraySlice slice)
+{
+  printf ("[");
+  for (size_t i = 0; i < slice.size; i++)
+    {
+      printf ("%s" PRINTF_NUMBER_FMT, i > 0 ? ", " : "", slice.data[i]);
     }
   printf ("]\n");
 }
