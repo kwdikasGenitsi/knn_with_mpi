@@ -1,6 +1,7 @@
 #include "stack.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 Stack *
 stack_new (size_t max_size)
@@ -35,6 +36,31 @@ stack_pop (Stack *stack)
   assert (stack->top > 0);
 
   return stack->stack[--stack->top];
+}
+
+void
+stack_push_array (Stack *stack, Array *array)
+{
+  /* Prevent a stack overflow. */
+  assert ((stack->top + array->size) < stack->max_size);
+
+  memcpy (stack->stack, array->data, sizeof (number_t) * array->size);
+  stack->top += array->size;
+}
+
+void
+stack_pop_array (Stack *stack, Array *array, size_t offset, size_t length)
+{
+  /* Make sure the array can store the result. */
+  assert (array->size >= length);
+
+  /* Prevent an underflow. */
+  assert (stack->top >= length);
+
+  memcpy (array->data + offset, stack->stack + stack->top - length,
+          length * sizeof (number_t));
+
+  stack->top -= length;
 }
 
 size_t
