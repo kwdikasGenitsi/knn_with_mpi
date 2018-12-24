@@ -54,3 +54,21 @@ array_fill_random (Array *array)
   for (size_t i = 0; i < array->size; i++)
     array->data[i] = (number_t) (rand () - rand ()) * 0.05f;
 }
+
+size_t
+heap_parent_of (size_t i)
+{
+  return (i - 1) / 2;
+}
+
+size_t
+heap_left_child_of (size_t i)
+{
+  return 2 * i + 1;
+}
+
+size_t
+heap_right_child_of (size_t i)
+{
+  return 2 * i + 2;
+}

@@ -60,3 +60,8 @@ void array_dump (Array *array);
  * Fills the array with random values.
  */
 void array_fill_random (Array *array);
+
+/* Heap indexing helpers. */
+size_t heap_parent_of (size_t i);
+size_t heap_left_child_of (size_t i);
+size_t heap_right_child_of (size_t i);
