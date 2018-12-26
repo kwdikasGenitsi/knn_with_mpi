@@ -4,6 +4,27 @@
 #include <stdlib.h>
 #include <string.h>
 
+void
+vp_tree_free (VPTree vp_tree)
+{
+  array_free (vp_tree.vp_heap);
+  array_free (vp_tree.median_heap);
+}
+
+VPTree
+vp_tree_from_dataset (Dataset dataset)
+{
+  VPTree tree;
+  /* @todo */
+  return tree;
+}
+
+number_t
+dataset_distance (size_t index1, size_t index2)
+{
+}
+
+#if 0
 /**
  * Global variable holding the vantage point to be used by the
  * qsort comparison callback, compare_vp_distances().
@@ -95,27 +116,55 @@ verify_tree (ArraySlice dataset, Array *vp_heap, Array *median_heap,
   verify_tree (right, vp_heap, median_heap, heap_right_child_of (heap_root));
 }
 
+#endif
+
+/**
+ * Verifies the correctness of a VP tree.
+ * @param tree The tree to verify.
+ * @param offset The offset from the start of the dataset to start at.
+ * @param size The size of the dataset (as in the number of points).
+ * @param heap_root The location of the vp and the median for this particular
+ *                  level within the heaps.
+ */
+static void
+verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
+{
+  if (size <= 1)
+    return;
+
+  size_t fc = tree.dataset.feature_count;
+
+  /* Find the VP and the median. */
+  number_t vp[tree.dataset.feature_count + 1];
+  memcpy (vp, tree.vp_heap.data + point_offset (fc, heap_root),
+          4 * sizeof (number_t));
+
+  number_t median = tree.median_heap.data[heap_root];
+
+  /* For each point, confirm the vp tree properties. */
+  size_t middle = size / 2;
+
+  for (size_t i = 0; i < size; i++)
+    {
+    }
+
+  /* Verify the two children. */
+}
+
 void
 test_vp_tree_local ()
 {
-  Array *dataset = array_new (256);
-  array_fill_random (dataset);
+  Array data = array_new (256 * 3);
+  array_fill_random (data);
 
-  /*
-   * Our tree will have log2(x) levels and thus
-   * have 2^log2(x) - 1 = x - 1 elements, where
-   * x the size of the dataset.
-   */
-  size_t heap_size = dataset->size - 1;
-  Array *vp_heap = array_new (heap_size);
-  Array *median_heap = array_new (heap_size);
+  Dataset dataset;
+  dataset.data = data;
+  dataset.feature_count = 2;
+  dataset.size = 256;
 
-  vp_tree_local_split (array_get_slice (dataset, 0, dataset->size), vp_heap,
-                       median_heap, 0);
-  verify_tree (array_get_slice (dataset, 0, dataset->size), vp_heap,
-               median_heap, 0);
+  VPTree tree = vp_tree_from_dataset (dataset);
+  verify_tree (tree, 0, dataset.size, 0);
 
-  array_free (dataset);
-  array_free (vp_heap);
-  array_free (median_heap);
+  vp_tree_free (tree);
+  array_free (data);
 }

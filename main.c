@@ -12,6 +12,9 @@
 int world_size;
 int world_rank;
 
+size_t g_feature_count;
+number_t *dataset;
+
 void
 test_log2i ()
 {
@@ -49,7 +52,7 @@ group_number (int l)
 {
   return world_rank / group_size (l);
 }
-
+#if 0
 Array *
 array_distances_from_vp (Array *dataset, number_t vantage_point)
 {
@@ -192,7 +195,7 @@ test_points_for_transfer (Array *dataset, Array *distances, number_t median)
         }
     }
 }
-#if 0
+
 void
 transfer_points_subteam (Array *dataset, Array *distances,
                          number_t vantage_point, number_t median,
@@ -244,7 +247,6 @@ request_master_recieve (int *sending_process, MasterBuffer *master_buffer,
   //  || less_than_median_array[sending_process]) // !! carefull with sending
   // size!
 }
-#endif
 
 int
 master_rank (int l)
@@ -309,6 +311,7 @@ split_parallel (Array *dataset, Stack *vp_stack, Stack *median_stack, int l)
 
   MPI_Comm_free (&comm);
 }
+#endif
 
 int
 main (int argc, char **argv)
@@ -333,9 +336,9 @@ main (int argc, char **argv)
       return EXIT_SUCCESS;
     }
 
-  Array *dataset = array_new (5);
+  Array dataset = array_new (5);
   array_fill_random (dataset);
-  int tree_depth = log2i (dataset->size * world_size);
+  int tree_depth = log2i (dataset.size * world_size);
   Stack *vp_stack = stack_new (tree_depth);
   Stack *median_stack = stack_new (tree_depth);
 

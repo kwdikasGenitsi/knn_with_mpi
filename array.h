@@ -29,33 +29,33 @@ typedef struct
  * @return A pointer to an Array structure that must be freed
  *         with array_free().
  */
-Array *array_new (size_t size);
+Array array_new (size_t size);
 
 /**
  * Creates a new array that points to a subarray within the original Array.
  * We call this a "slice", in accordance with Rust terminology.
  * Slices are allocated statically and need not be freed.
  */
-ArraySlice array_get_slice (Array *array, size_t offset, size_t length);
+ArraySlice array_get_slice (Array array, size_t offset, size_t length);
 
 /**
  * Frees the memory occupied by an Array.
  */
-void array_free (Array *array);
+void array_free (Array array);
 
 /**
  * Prints the contents of the array in human-readable form to stdout.
  * For instance "[1, 2, 3]\n"
  * @param array The array to dump.
  */
-void array_dump (Array *array);
+void array_dump (Array array);
 
 void array_slice_dump (ArraySlice slice);
 
 /**
  * Fills the array with random values.
  */
-void array_fill_random (Array *array);
+void array_fill_random (Array array);
 
 /* Heap indexing helpers. */
 size_t heap_parent_of (size_t i);
