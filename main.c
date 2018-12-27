@@ -53,20 +53,10 @@ group_number (int l)
   return world_rank / group_size (l);
 }
 
-Array *
-array_distances_from_vp (Dataset *dataset, Point vantage_point)
-{ /*
-  for (int i = 0; i < point_count (dataset->feature_count, dataset->size); i++)
-    {
-    }
-    */
-  return NULL;
-}
-
-float
+number_t
 eucledian_distance (Point point1, Point point2)
 {
-  float distance, squares_sum = 0;
+  number_t distance, squares_sum = 0;
   assert (point1.feature_count == point2.feature_count);
   for (size_t i = 0; i < point1.feature_count; i++)
     {
@@ -76,6 +66,20 @@ eucledian_distance (Point point1, Point point2)
   // distance = sqrt (squares_sum);
   distance = squares_sum;
   return distance;
+}
+
+Array
+array_distances_from_vp (Dataset *dataset, Point vantage_point)
+{
+  size_t number_of_points = point_count (dataset->feature_count, dataset->size);
+  Array distances = array_new (number_of_points);
+  for (int i = 0; i < number_of_points; i++)
+    {
+      distances.data[i]
+        = eucledian_distance (get_point_from_dataset (dataset, i),
+                              vantage_point);
+    }
+  return distances;
 }
 
 int
@@ -92,48 +96,53 @@ less_than_median (Array *distances, number_t median_distance)
     }
   return count_points;
 }
-/* @todo
-Dataset
-points_for_transfer (Dataset *dataset, Array *distances, Point vantage_point,
-                     number_t median_distance, const int is_process_left,
-                     int less_than_median)
+
+Array
+data_to_send (Dataset *dataset, Array *distances, Point vantage_point,
+              number_t median_distance, const int is_process_left,
+              size_t less_than_median)
 {
-  Dataset transfer_buffer = if (is_process_left)
-  {
-    transfer_buffer->data = (number_t *) malloc (
-      sizeof (number_t *) * (dataset->size - less_than_median));
-    transfer_buffer->size = dataset->size - less_than_median;
-  }
+  Dataset dataset_to_send;
+  size_t number_of_points = point_count (dataset->feature_count, dataset->size);
+  assert (number_of_points == distances->size);
+  if (is_process_left)
+    {
+      dataset_to_send = dataset_new (dataset->feature_count,
+                                     distances->size - less_than_median);
+    }
   else
-  {
-    transfer_buffer->data
-      = (number_t *) malloc (sizeof (number_t *) * less_than_median);
-    transfer_buffer->size = less_than_median;
-  }
+    {
+      dataset_to_send = dataset_new (dataset->feature_count, less_than_median);
+    }
 
   int k = 0;
-  for (int i = 0; i < dataset->size; i++)
+  for (size_t point_index = 0; point_index < number_of_points; point_index++)
     {
       if (is_process_left)
         {
-          if (distances->data[i] > median)
+          if (distances->data[point_index] > median_distance)
             {
-              transfer_buffer->data[k] = dataset->data[i];
+              enter_point_to_dataset (&dataset_to_send,
+                                      get_point_from_dataset (dataset,
+                                                              point_index),
+                                      k);
               k++;
             }
         }
       else
         {
-          if (distances->data[i] <= median)
+          if (distances->data[point_index] <= median_distance)
             {
-              transfer_buffer->data[k] = dataset->data[i];
+              enter_point_to_dataset (&dataset_to_send,
+                                      get_point_from_dataset (dataset,
+                                                              point_index),
+                                      k);
               k++;
             }
         }
     }
-  return transfer_buffer;
+  return dataset_to_send.data;
 }
-*/
 
 #if 0
 void
@@ -350,9 +359,10 @@ main (int argc, char **argv)
           */
           Dataset dataset = dataset_new (3, 5);
           dataset_fill_random (dataset);
-          print_dataset (&dataset);
           Point point = get_point_from_dataset (&dataset, 0);
           Point point2 = get_point_from_dataset (&dataset, 1);
+          enter_point_to_dataset (&dataset, point2, 4);
+          print_dataset (&dataset);
           print_point (point);
           print_point (point2);
           printf ("distance p1 from p2 is %f\n",

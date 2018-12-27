@@ -13,6 +13,27 @@ dataset_new (size_t feature_count, size_t point_count)
   return dataset;
 }
 
+Point
+point_new (size_t feature_count)
+{
+  Point point;
+  point.feature_count = feature_count;
+  point.data = array_new (feature_count + 1);
+  return point;
+}
+
+void
+point_free (Point point)
+{
+  array_free (point.data);
+}
+
+void
+dataset_free (Dataset dataset)
+{
+  array_free (dataset.data);
+}
+
 void
 dataset_fill_random (Dataset dataset)
 {
@@ -25,7 +46,7 @@ dataset_fill_random (Dataset dataset)
 }
 
 Point
-get_point_from_dataset (Dataset *dataset, int index)
+get_point_from_dataset (Dataset *dataset, size_t index)
 {
   Point point;
   point.feature_count = dataset->feature_count;
@@ -39,6 +60,19 @@ get_point_from_dataset (Dataset *dataset, int index)
         = dataset->data.data[feature_offset (dataset->feature_count, index, i)];
     }
   return point;
+}
+
+void
+enter_point_to_dataset (Dataset *dataset, Point point, size_t index)
+{
+  assert (dataset->feature_count == point.feature_count);
+  dataset->data.data[point_offset (dataset->feature_count, index)]
+    = point.data.data[0];
+  for (size_t i = 0; i < dataset->feature_count; i++)
+    {
+      dataset->data.data[feature_offset (dataset->feature_count, index, i)]
+        = point.data.data[i + 1];
+    }
 }
 
 void

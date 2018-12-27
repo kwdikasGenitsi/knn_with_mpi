@@ -33,10 +33,15 @@ typedef struct
   size_t feature_count;
 } Dataset;
 
+Point point_new (size_t feature_count);
 Dataset dataset_new (size_t feature_count, size_t point_count);
 void dataset_fill_random (Dataset dataset);
 
-Point get_point_from_dataset (Dataset *dataset, int index);
+void point_free (Point point);
+void dataset_free (Dataset dataset);
+
+Point get_point_from_dataset (Dataset *dataset, size_t index);
+void enter_point_to_dataset (Dataset *dataset, Point new_point, size_t index);
 
 void print_dataset (Dataset *dataset);
 void print_point (Point point);
