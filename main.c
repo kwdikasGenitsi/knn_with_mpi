@@ -122,10 +122,10 @@ data_to_send (Dataset *dataset, Array *distances, Point vantage_point,
         {
           if (distances->data[point_index] > median_distance)
             {
-              enter_point_to_dataset (&dataset_to_send,
-                                      get_point_from_dataset (dataset,
-                                                              point_index),
-                                      k);
+              Point point_to_enter
+                = get_point_from_dataset (dataset, point_index);
+              enter_point_to_dataset (&dataset_to_send, point_to_enter, k);
+              point_free (point_to_enter);
               k++;
             }
         }
@@ -133,10 +133,10 @@ data_to_send (Dataset *dataset, Array *distances, Point vantage_point,
         {
           if (distances->data[point_index] <= median_distance)
             {
-              enter_point_to_dataset (&dataset_to_send,
-                                      get_point_from_dataset (dataset,
-                                                              point_index),
-                                      k);
+              Point point_to_enter
+                = get_point_from_dataset (dataset, point_index);
+              enter_point_to_dataset (&dataset_to_send, point_to_enter, k);
+              point_free (point_to_enter);
               k++;
             }
         }
