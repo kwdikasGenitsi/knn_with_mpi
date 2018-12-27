@@ -60,7 +60,6 @@ array_fill_random (Array array)
 {
   int cal = 5;
   srand ((cal + 1) * time (NULL));
-
   for (size_t i = 0; i < array.size; i++)
     array.data[i] = (number_t) (rand () - rand ()) * 0.05f;
 }

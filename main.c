@@ -15,6 +15,75 @@ int world_rank;
 size_t g_feature_count;
 number_t *dataset;
 
+typedef struct
+{
+  Array data;
+  size_t feature_count;
+} Point;
+
+Dataset
+dataset_fill_random (size_t feature_count, size_t point_count)
+{
+  int size = (feature_count + 1) * point_count;
+  Dataset dataset;
+  dataset.size = size;
+  dataset.feature_count = feature_count;
+  dataset.data = array_new (size);
+  array_fill_random (dataset.data);
+  for (int i = 0; i < point_count (dataset.feature_count, dataset.size); i++)
+    {
+      dataset.data.data[point_offset (dataset.feature_count, i)] = i;
+    }
+  return dataset;
+}
+
+Point
+get_point_from_dataset (Dataset *dataset, int index)
+{
+  Point point;
+  point.feature_count = dataset->feature_count;
+  point.data = array_new (point.feature_count + 1);
+  point.data.data[0]
+    = dataset->data.data[point_offset (dataset->feature_count,
+                                       index)]; // get point's index
+  for (size_t i = 0; i < dataset->feature_count; i++)
+    {
+      point.data.data[i + 1]
+        = dataset->data.data[feature_offset (dataset->feature_count, index, i)];
+    }
+  return point;
+}
+
+void
+print_dataset (Dataset *dataset)
+{
+  for (size_t i = 0; i < point_count (dataset->feature_count, dataset->size);
+       i++)
+    {
+      printf ("Point with index %d: (",
+              (int)
+                dataset->data.data[point_offset (dataset->feature_count, i)]);
+      for (size_t j = 0; j < dataset->feature_count; j++)
+        {
+          printf (
+            " %f ",
+            dataset->data.data[feature_offset (dataset->feature_count, i, j)]);
+        }
+      printf (")\n");
+    }
+}
+
+void
+print_point (Point point)
+{
+  printf ("Point with index %d: (", (int) point.data.data[0]);
+  for (int i = 1; i <= point.feature_count; i++)
+    {
+      printf (" %f ", point.data.data[i]);
+    }
+  printf (")\n");
+}
+
 void
 test_log2i ()
 {
@@ -52,22 +121,33 @@ group_number (int l)
 {
   return world_rank / group_size (l);
 }
-#if 0
+
 Array *
-array_distances_from_vp (Array *dataset, number_t vantage_point)
-{
-  Array *distances = (Array *) malloc (sizeof (Array));
-  distances->size = dataset->size;
-  distances->data = (number_t *) malloc (sizeof (number_t) * distances->size);
-  for (int i = 0; i < dataset->size; i++)
+array_distances_from_vp (Dataset *dataset, Point vantage_point)
+{ /*
+  for (int i = 0; i < point_count (dataset->feature_count, dataset->size); i++)
     {
-      distances->data[i] = fabs (
-        vantage_point - dataset->data[i]); // we calculate the distance of the
-                                           // ith point from the vantage point
     }
-  return distances;
+    */
+  return NULL;
 }
 
+float
+eucledian_distance (Point point1, Point point2)
+{
+  float distance, squares_sum = 0;
+  assert (point1.feature_count == point2.feature_count);
+  for (size_t i = 0; i < point1.feature_count; i++)
+    {
+      squares_sum += (point1.data.data[i + 1] - point2.data.data[i + 1])
+                     * (point1.data.data[i + 1] - point2.data.data[i + 1]);
+    }
+  // distance = sqrt (squares_sum);
+  distance = squares_sum;
+  return distance;
+}
+
+#if 0
 void
 test_array_distances_from_vp ()
 {
@@ -326,16 +406,26 @@ main (int argc, char **argv)
     {
       if (world_rank == 0)
         {
+          /*
           test_partitioning ();
           test_log2i ();
           test_stack ();
           test_master_buffer_functionality ();
           test_vp_tree_local ();
           printf ("All tests sucessful.\n");
+          */
+          Dataset dataset = dataset_fill_random (3, 5);
+          print_dataset (&dataset);
+          Point point = get_point_from_dataset (&dataset, 0);
+          Point point2 = get_point_from_dataset (&dataset, 1);
+          print_point (point);
+          print_point (point2);
+          printf ("distance p1 from p2 is %f\n",
+                  eucledian_distance (point, point2));
         }
       return EXIT_SUCCESS;
     }
-
+  /*
   Array dataset = array_new (5);
   array_fill_random (dataset);
   int tree_depth = log2i (dataset.size * world_size);
@@ -348,6 +438,8 @@ main (int argc, char **argv)
     }
 
   array_free (dataset);
+  */
   MPI_Finalize ();
+
   return EXIT_SUCCESS;
 }

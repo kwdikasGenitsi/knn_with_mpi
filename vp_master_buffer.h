@@ -2,6 +2,7 @@
 
 #include "array.h"
 
+#if 0
 typedef struct
 {
   Array *buffer;
@@ -16,3 +17,4 @@ void master_buffer_free (MasterBuffer *master_buffer);
 
 int master_buffer_fill (MasterBuffer *master_buffer, Array *new_points);
 Array *master_buffer_throw (MasterBuffer *master_buffer, int number_of_points);
+#endif

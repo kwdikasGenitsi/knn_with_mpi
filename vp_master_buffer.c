@@ -1,7 +1,7 @@
 #include "vp_master_buffer.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#if 0
 MasterBuffer *
 master_buffer_new (int size)
 {
@@ -77,3 +77,4 @@ master_buffer_throw (MasterBuffer *master_buffer, int number_of_points)
       return NULL;
     }
 }
+#endif
