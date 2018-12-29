@@ -427,132 +427,6 @@ exchange_group_data (Dataset *dataset, Array *distances,
 
 #if 0
 void
-test_array_distances_from_vp ()
-{
-  Array *dataset = array_new (5);
-  array_fill_random (dataset);
-  number_t vp = 4.56f;
-  Array *distances = array_distances_from_vp (dataset, vp);
-  for (int i = 0; i < dataset->size; i++)
-    {
-      printf (
-        "PROCESS %d: vantage_point = %f, point[%d] = %f and distance = %f\n",
-        world_rank, vp, i, dataset->data[i], distances->data[i]);
-    }
-  array_free (dataset);
-  /** @todo Do some actual testing with assert() */
-}
-
-
-
-
-void
-test_master_buffer_functionality ()
-{
-  Array *input_array = array_new (3);
-  MasterBuffer *master_buffer = master_buffer_new (9);
-  int k = 0, l = 0;
-  for (int i = 0; i < 15; i++)
-    {
-      input_array->data[k] = i;
-      k++;
-      if (k == 3)
-        {
-          l++;
-          k = 0;
-          master_buffer_fill (master_buffer, input_array);
-        }
-      if (l == 2)
-        {
-          l = 0;
-          array_free (input_array);
-          input_array = master_buffer_throw (master_buffer, 3);
-        }
-    }
-  int test_array[9] = {0, 1, 2, 6, 7, 8, 12, 13, 14};
-  for (int i = 0; i < 9; i++)
-    {
-      assert (test_array[i] == (int) master_buffer->buffer->data[i]);
-    }
-  array_free (input_array);
-  master_buffer_free (master_buffer);
-}
-
-void
-test_points_for_transfer (Array *dataset, Array *distances, number_t median)
-{
-  int vantage_point = 4.04f;
-  Array *transfer_buffer
-    = points_for_transfer (dataset, distances, vantage_point, median, 0,
-                           less_than_median (distances, vantage_point, median));
-  if (world_rank == 0)
-    {
-      printf ("transfer_buffer size is %d\n", transfer_buffer->size);
-      printf ("median distance is %f\n", median);
-      for (int i = 0; i < distances->data[i]; i++)
-        {
-          printf ("distances[%d] = %f\n", i, distances->data[i]);
-        }
-      for (int i = 0; i < transfer_buffer->size; i++)
-        {
-          printf ("transfer_buffer[%d] = %f\n", i, transfer_buffer->data[i]);
-        }
-    }
-}
-
-void
-transfer_points_subteam (Array *dataset, Array *distances,
-                         number_t vantage_point, number_t median,
-                         MPI_Comm subteam_comm, MPI_Comm subteam_rank,
-                         MPI_Comm subteam_size)
-{
-  // -- ------split it on another function later-------------------------------
-  int less_than_median_int
-    = less_than_median (distances, vantage_point, median);
-  int *less_than_median_array = NULL;
-  MasterBuffer *master_buffer = NULL;
-  if (subteam_rank == 0)
-    {
-      less_than_median_array = (int *) malloc (sizeof (int) * subteam_size);
-      master_buffer = master_buffer_new (2 * subteam_size);
-    }
-  MPI_Gather (&less_than_median_int, 1, MPI_INT, less_than_median_array, 1,
-              MPI_INT, 0, subteam_comm);
-  // -------------------------------------------------------------------------
-  int is_process_left = 1 - ((subteam_size / 2) + subteam_rank) / subteam_size;
-  Array *points_to_send
-    = points_for_transfer (dataset, distances, vantage_point, median,
-                           is_process_left, less_than_median_int);
-  Array *recieved_points = array_new (points_to_send->size);
-  if (subteam_rank == 0)
-    {
-      int recieving_process = 0, sending_process = subteam_size / 2;
-      while (recieving_process < subteam_size / 2
-             || sending_process < subteam_size)
-        {
-          request_master_recieve (&sending_process, master_buffer,
-                                  less_than_median_array, subteam_comm,
-                                  subteam_size);
-        }
-    }
-  else if (subteam_rank >= subteam_size / 2)
-    {
-      MPI_Send (points_to_send->data, points_to_send->size, MPI_FLOAT, 0, 0,
-                subteam_comm);
-    }
-}
-
-void
-request_master_recieve (int *sending_process, MasterBuffer *master_buffer,
-                        int *less_than_median_array, MPI_Comm subteam_comm,
-                        MPI_Comm subteam_size)
-{
-  // if (sending_process >= subteam_size
-  //  || less_than_median_array[sending_process]) // !! carefull with sending
-  // size!
-}
-
-void
 split_parallel (Array *dataset, Stack *vp_stack, Stack *median_stack, int l)
 {
   MPI_Comm comm = communicator_for_level (l);
@@ -592,6 +466,7 @@ split_parallel (Array *dataset, Stack *vp_stack, Stack *median_stack, int l)
   MPI_Comm_free (&comm);
 }
 #endif
+
 float
 get_median_distance (Array distances, MPI_Comm comm, int group_rank,
                      int group_size)
