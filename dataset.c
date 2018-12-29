@@ -1,4 +1,5 @@
 #include "dataset.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,6 +50,21 @@ dataset_read (Dataset dataset, number_t *data, size_t index, size_t count)
   size_t chunk_size = (dataset.feature_count + 1) * count;
   size_t offset = index * (dataset.feature_count + 1);
   memcpy (data, dataset.data.data + offset, chunk_size * sizeof (number_t));
+}
+
+number_t
+point_distance (number_t *p1, number_t *p2, size_t feature_count)
+{
+  /* Increase the two pointers by 1 to skip the index. */
+  p1++;
+  p2++;
+  number_t square_sum = 0.0f;
+  for (size_t i = 0; i < feature_count; i++)
+    {
+      number_t distance = p1[i] - p2[i];
+      square_sum += distance * distance;
+    }
+  return sqrtf (square_sum); /**< Replace with sqrt() if number_t is double. */
 }
 
 void
@@ -147,6 +163,14 @@ test_dataset ()
     {
       assert (buffer[i] == (number_t) (i % 3));
     }
+
+  number_t point1[3];
+  number_t point2[3];
+  dataset_read (d, point1, 0, 1);
+  dataset_read (d, point2, 3, 1);
+
+  number_t distance = point_distance (point1, point2, d.feature_count);
+  assert (fabs (distance - sqrtf (18)) <= __FLT_EPSILON__);
 
   dataset_free (d);
 }

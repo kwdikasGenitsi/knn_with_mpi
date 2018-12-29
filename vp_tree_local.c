@@ -154,18 +154,12 @@ verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
 void
 test_vp_tree_local ()
 {
-  return;
-  Array data = array_new (256 * 3);
-  array_fill_random (data);
-
-  Dataset dataset;
-  dataset.data = data;
-  dataset.feature_count = 2;
-  dataset.size = 256;
+  Dataset dataset = dataset_new (2, 256);
+  dataset_fill_random (dataset);
 
   VPTree tree = vp_tree_from_dataset (dataset);
-  verify_tree (tree, 0, dataset.size, 0);
+  // verify_tree (tree, 0, dataset.size, 0);
 
-  vp_tree_free (tree);
-  array_free (data);
+  // vp_tree_free (tree);
+  dataset_free (dataset);
 }

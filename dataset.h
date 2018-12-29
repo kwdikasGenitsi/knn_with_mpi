@@ -57,6 +57,8 @@ void dataset_write (Dataset dataset, number_t *data, size_t index,
  */
 void dataset_read (Dataset dataset, number_t *data, size_t index, size_t count);
 
+number_t point_distance (number_t *p1, number_t *p2, size_t feature_count);
+
 /**
  * @note Leaving these here for compatibility purposes, but they should not
  * be used since they are extremely low-performance given the 4-byte dynamic
