@@ -89,19 +89,12 @@ void
 dataset_fill_random (Dataset dataset)
 {
   array_fill_random (dataset.data);
-  for (int i = 0; i < point_count (dataset.feature_count, dataset.size); i++)
-    {
-      dataset.data.data[point_offset (dataset.feature_count, i)] = i;
-    }
-  return dataset;
 }
 
 void
 point_fill_random (Point point)
 {
   array_fill_random (point.data);
-  point.data.data[0] = 666; // Sataniasi full! oi euraioi siwnistes!
-  return point;
 }
 
 Point
@@ -156,7 +149,7 @@ void
 print_point (Point point)
 {
   printf ("Point with index %d: (", (int) point.data.data[0]);
-  for (int i = 1; i <= point.feature_count; i++)
+  for (size_t i = 1; i <= point.feature_count; i++)
     {
       printf (" %f ", point.data.data[i]);
     }
