@@ -14,6 +14,9 @@ typedef struct
 VPTree vp_tree_from_dataset (Dataset dataset);
 void vp_tree_free (VPTree vp_tree);
 
+void vp_tree_read_vp (VPTree vp_tree, number_t *vp, size_t heap_index);
+void vp_tree_write_vp (VPTree vp_tree, number_t *vp, size_t heap_index);
+
 /**
  * Generates an entire VP tree, recursively.
  * The heaps must have size at least dataset.size - 1.

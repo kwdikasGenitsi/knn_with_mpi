@@ -349,13 +349,20 @@ main (int argc, char **argv)
     {
       if (world_rank == 0)
         {
+          if (getenv ("PAUSE"))
+            {
+              float f = 0.0f;
+              while (f != 3.0f)
+                scanf (" %f\n", &f);
+            }
           test_partitioning ();
           test_log2i ();
           test_stack ();
-          test_vp_tree_local ();
           test_dataset ();
+          test_vp_tree_local ();
           printf ("All tests sucessful.\n");
         }
+      MPI_Finalize ();
       return EXIT_SUCCESS;
     }
   /*

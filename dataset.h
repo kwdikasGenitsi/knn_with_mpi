@@ -30,7 +30,7 @@ typedef struct
 typedef struct
 {
   Array data;
-  size_t size;
+  size_t size; /**< The number of points in the dataset. */
   size_t feature_count;
 } Dataset;
 
@@ -57,7 +57,11 @@ void dataset_write (Dataset dataset, number_t *data, size_t index,
  */
 void dataset_read (Dataset dataset, number_t *data, size_t index, size_t count);
 
+void dump_point (number_t *p, size_t feature_count);
+
 number_t point_distance (number_t *p1, number_t *p2, size_t feature_count);
+
+number_t *dataset_point (Dataset dataset, size_t index);
 
 /**
  * @note Leaving these here for compatibility purposes, but they should not

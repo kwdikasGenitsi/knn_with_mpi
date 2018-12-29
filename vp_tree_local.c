@@ -1,8 +1,28 @@
 #include "vp_tree_local.h"
+#include "sort_r.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef struct
+{
+  number_t *vp;
+  size_t feature_count;
+} VPComparisonContext;
+
+static int
+compare_distances_from_vp (const void *a, const void *b, void *arg)
+{
+  VPComparisonContext *ctx = (VPComparisonContext *) arg;
+  number_t *point_a = (number_t *) a;
+  number_t *point_b = (number_t *) b;
+  number_t distance_a = point_distance (ctx->vp, point_a, ctx->feature_count);
+  number_t distance_b = point_distance (ctx->vp, point_b, ctx->feature_count);
+  if (distance_a == distance_b)
+    return 0;
+  return (distance_a > distance_b) ? 1 : -1;
+}
 
 void
 vp_tree_free (VPTree vp_tree)
@@ -11,112 +31,96 @@ vp_tree_free (VPTree vp_tree)
   array_free (vp_tree.median_heap);
 }
 
+#ifdef PEDANTIC_CHECKS
+static void
+check_sorted (VPComparisonContext ctx, Dataset dataset, size_t offset,
+              size_t size)
+{
+  assert (ctx.feature_count == dataset.feature_count);
+  number_t prev_distance = 0.0f;
+  for (size_t i = 0; i < size; i++)
+    {
+      number_t distance
+        = point_distance (ctx.vp, dataset_point (dataset, offset + i),
+                          ctx.feature_count);
+      assert (prev_distance <= distance);
+      prev_distance = distance;
+    }
+}
+#endif
+
+static void
+vp_tree_split (VPTree tree, size_t offset, size_t size, size_t heap_root)
+{
+  if (size <= 1)
+    return;
+
+  assert (size % 2 == 0);
+
+  assert (heap_root < tree.vp_heap.size);
+  assert (heap_root < tree.median_heap.size);
+
+  /* Pick a vantage point. */
+  size_t vp_index = rand () % size;
+  number_t vp[tree.dataset.feature_count + 1];
+  dataset_read (tree.dataset, vp, vp_index, 1);
+  vp_tree_write_vp (tree, vp, heap_root);
+
+  /* Sort by distance from the vp. */
+  VPComparisonContext ctx;
+  ctx.feature_count = tree.dataset.feature_count;
+  ctx.vp = vp;
+  sort_r (dataset_point (tree.dataset, offset), size, 3 * sizeof (number_t),
+          compare_distances_from_vp, &ctx);
+
+#ifdef PEDANTIC_CHECKS
+  check_sorted (ctx, tree.dataset, offset, size);
+#endif
+
+  /* Find the median. */
+  size_t middle = size / 2 - 1;
+  number_t *point1 = dataset_point (tree.dataset, offset + middle);
+  number_t *point2 = dataset_point (tree.dataset, offset + middle + 1);
+  number_t median
+    = 0.5f
+      * (point_distance (point1, vp, tree.dataset.feature_count)
+         + point_distance (point2, vp, tree.dataset.feature_count));
+  tree.median_heap.data[heap_root] = median;
+
+  vp_tree_split (tree, offset, size / 2, heap_left_child_of (heap_root));
+  vp_tree_split (tree, offset + size / 2, size / 2,
+                 heap_right_child_of (heap_root));
+}
+
 VPTree
 vp_tree_from_dataset (Dataset dataset)
 {
   VPTree tree;
-  /* @todo */
+  size_t heap_size = dataset.size - 1;
+  tree.dataset = dataset;
+  tree.median_heap = array_new (heap_size);
+  tree.vp_heap = array_new (heap_size * (dataset.feature_count + 1));
+
+  vp_tree_split (tree, 0, dataset.size, 0);
+
   return tree;
 }
 
-number_t
-dataset_distance (size_t index1, size_t index2)
+void
+vp_tree_read_vp (VPTree vp_tree, number_t *vp, size_t heap_index)
 {
-}
-
-#if 0
-/**
- * Global variable holding the vantage point to be used by the
- * qsort comparison callback, compare_vp_distances().
- */
-number_t g_vp;
-
-int
-compare_vp_distances (const void *a, const void *b)
-{
-  number_t fa = *(const number_t *) a;
-  number_t fb = *(const number_t *) b;
-  number_t da = fabs (fa - g_vp);
-  number_t db = fabs (fb - g_vp);
-  return (da > db) - (da < db);
+  size_t chunk_size = (vp_tree.dataset.feature_count + 1);
+  size_t offset = heap_index * (vp_tree.dataset.feature_count + 1);
+  memcpy (vp, vp_tree.vp_heap.data + offset, chunk_size * sizeof (number_t));
 }
 
 void
-vp_tree_local_split (ArraySlice dataset, Array *vp_heap, Array *median_heap,
-                     size_t heap_root)
+vp_tree_write_vp (VPTree vp_tree, number_t *vp, size_t heap_index)
 {
-  if (dataset.size <= 1)
-    return;
-
-  assert (dataset.size % 2 == 0);
-
-  assert (heap_root < vp_heap->size);
-  assert (heap_root < median_heap->size);
-
-  /* Pick a vantage point. */
-  number_t vp = dataset.data[rand () % dataset.size];
-  vp_heap->data[heap_root] = vp;
-
-  /* Sort by distance from the vp. */
-  g_vp = vp;
-  qsort (dataset.data, dataset.size, sizeof (number_t), compare_vp_distances);
-
-  /* Find the median. */
-  size_t middle = dataset.size / 2 - 1;
-  number_t median = 0.5f
-                    * (fabs (dataset.data[middle] - vp)
-                       + fabs (dataset.data[middle + 1] - vp));
-  median_heap->data[heap_root] = median;
-
-  ArraySlice left = {dataset.data, dataset.size / 2};
-  ArraySlice right = {dataset.data + dataset.size / 2, dataset.size / 2};
-  assert (left.size + right.size == dataset.size);
-
-  vp_tree_local_split (left, vp_heap, median_heap,
-                       heap_left_child_of (heap_root));
-  vp_tree_local_split (right, vp_heap, median_heap,
-                       heap_right_child_of (heap_root));
+  size_t chunk_size = (vp_tree.dataset.feature_count + 1);
+  size_t offset = heap_index * (vp_tree.dataset.feature_count + 1);
+  memcpy (vp_tree.vp_heap.data + offset, vp, chunk_size * sizeof (number_t));
 }
-
-void
-verify_tree (ArraySlice dataset, Array *vp_heap, Array *median_heap,
-             size_t heap_root)
-{
-  if (dataset.size <= 1)
-    return;
-
-  assert (heap_root < vp_heap->size);
-  assert (heap_root < median_heap->size);
-
-  /* Get the vantage point. */
-  number_t vp = vp_heap->data[heap_root];
-  /* Get the median. */
-  number_t median = median_heap->data[heap_root];
-
-  size_t middle = dataset.size / 2;
-  for (size_t i = 0; i < dataset.size; i++)
-    {
-      number_t distance = fabs (dataset.data[i] - vp);
-      if (i < middle)
-        {
-          assert (distance <= median);
-        }
-      else
-        {
-          assert (distance >= median);
-        }
-    }
-
-  /* Verify the children. */
-  ArraySlice left = {dataset.data, dataset.size / 2};
-  ArraySlice right = {dataset.data + dataset.size / 2, dataset.size / 2};
-  assert (left.size + right.size == dataset.size);
-
-  verify_tree (left, vp_heap, median_heap, heap_left_child_of (heap_root));
-  verify_tree (right, vp_heap, median_heap, heap_right_child_of (heap_root));
-}
-
-#endif
 
 /**
  * Verifies the correctness of a VP tree.
@@ -132,34 +136,52 @@ verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
   if (size <= 1)
     return;
 
-  size_t fc = tree.dataset.feature_count;
+  assert (heap_root < tree.vp_heap.size);
+  assert (heap_root < tree.median_heap.size);
 
-  /* Find the VP and the median. */
+  /* Get the vantage point. */
   number_t vp[tree.dataset.feature_count + 1];
-  memcpy (vp, tree.vp_heap.data + point_offset (fc, heap_root),
-          4 * sizeof (number_t));
+  vp_tree_read_vp (tree, vp, heap_root);
 
+  /* Get the median. */
   number_t median = tree.median_heap.data[heap_root];
 
-  /* For each point, confirm the vp tree properties. */
-  size_t middle = size / 2;
+  VPComparisonContext ctx;
+  ctx.feature_count = tree.dataset.feature_count;
+  ctx.vp = vp;
 
+  size_t middle = size / 2;
   for (size_t i = 0; i < size; i++)
     {
+      number_t *point = dataset_point (tree.dataset, i + offset);
+      number_t distance
+        = point_distance (vp, point, tree.dataset.feature_count);
+      if (i < middle)
+        {
+          assert (distance <= median);
+        }
+      else
+        {
+          assert (distance >= median);
+        }
     }
 
-  /* Verify the two children. */
+  /* Verify the children. */
+  verify_tree (tree, offset, size / 2, heap_left_child_of (heap_root));
+  verify_tree (tree, offset + size / 2, size / 2,
+               heap_right_child_of (heap_root));
 }
 
 void
 test_vp_tree_local ()
 {
-  Dataset dataset = dataset_new (2, 256);
+  Dataset dataset = dataset_new (2, 1024);
   dataset_fill_random (dataset);
 
   VPTree tree = vp_tree_from_dataset (dataset);
-  // verify_tree (tree, 0, dataset.size, 0);
 
-  // vp_tree_free (tree);
+  verify_tree (tree, 0, dataset.size, 0);
+
   dataset_free (dataset);
+  vp_tree_free (tree);
 }

@@ -7,11 +7,10 @@
 Dataset
 dataset_new (size_t feature_count, size_t point_count)
 {
-  size_t size = (feature_count + 1) * point_count;
   Dataset dataset;
-  dataset.size = size;
+  dataset.size = point_count;
   dataset.feature_count = feature_count;
-  dataset.data = array_new (size);
+  dataset.data = array_new (point_count * (feature_count + 1));
   return dataset;
 }
 
@@ -52,6 +51,18 @@ dataset_read (Dataset dataset, number_t *data, size_t index, size_t count)
   memcpy (data, dataset.data.data + offset, chunk_size * sizeof (number_t));
 }
 
+void
+dump_point (number_t *p, size_t feature_count)
+{
+  printf ("(");
+  p++;
+  for (size_t i = 0; i < feature_count; i++)
+    {
+      printf ("%s%f", i == 0 ? "" : ", ", p[i]);
+    }
+  printf (")");
+}
+
 number_t
 point_distance (number_t *p1, number_t *p2, size_t feature_count)
 {
@@ -63,18 +74,21 @@ point_distance (number_t *p1, number_t *p2, size_t feature_count)
     {
       number_t distance = p1[i] - p2[i];
       square_sum += distance * distance;
+      assert (square_sum >= 0.0f);
     }
   return sqrtf (square_sum); /**< Replace with sqrt() if number_t is double. */
+}
+
+number_t *
+dataset_point (Dataset dataset, size_t index)
+{
+  return dataset.data.data + index * (dataset.feature_count + 1);
 }
 
 void
 dataset_fill_random (Dataset dataset)
 {
   array_fill_random (dataset.data);
-  for (int i = 0; i < point_count (dataset.feature_count, dataset.size); i++)
-    {
-      dataset.data.data[point_offset (dataset.feature_count, i)] = i;
-    }
 }
 
 Point
@@ -110,8 +124,7 @@ enter_point_to_dataset (Dataset *dataset, Point point, size_t index)
 void
 print_dataset (Dataset *dataset)
 {
-  for (size_t i = 0; i < point_count (dataset->feature_count, dataset->size);
-       i++)
+  for (size_t i = 0; i < dataset->size; i++)
     {
       printf ("Point with index %d: (",
               (int)
