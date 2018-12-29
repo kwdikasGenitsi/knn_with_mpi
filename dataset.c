@@ -206,7 +206,7 @@ array_to_dataset (Array array, size_t feature_count)
 {
   Dataset dataset
     = dataset_new (feature_count, point_count (feature_count, array.size));
-  dataset.data.size = dataset.size;
+  dataset.data.size = array.size;
   dataset.data.data = array.data;
   return dataset;
 }

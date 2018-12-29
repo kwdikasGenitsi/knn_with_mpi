@@ -89,7 +89,7 @@ test_point_dataset ()
 Array
 array_distances_from_vp (Dataset *dataset, Point vantage_point)
 {
-  size_t number_of_points = point_count (dataset->feature_count, dataset->size);
+  size_t number_of_points = dataset->size;
   Array distances = array_new (number_of_points);
   for (int i = 0; i < number_of_points; i++)
     {
@@ -120,7 +120,7 @@ data_to_send (Dataset *dataset, Array *distances, number_t median_distance,
               const int is_process_left, size_t less_than_median)
 {
   Dataset dataset_to_send;
-  size_t number_of_points = point_count (dataset->feature_count, dataset->size);
+  size_t number_of_points = dataset->size;
   assert (number_of_points == distances->size);
   if (is_process_left)
     {
@@ -172,8 +172,7 @@ test_exchanged_data_validity (Point vantage_point, Array array,
   if (should_be_less_than_median)
     {
       // All distances from vp should be less than median.
-      assert (point_count (feature_count, dataset.size)
-              == less_than_median (&distances, median_distance));
+      assert (dataset.size == less_than_median (&distances, median_distance));
     }
   else
     {
@@ -303,7 +302,7 @@ merge_recieved_points (Dataset *dataset, Array *distances,
                        size_t is_process_left)
 {
 
-  size_t number_of_points = point_count (dataset->feature_count, dataset->size);
+  size_t number_of_points = dataset->size;
   assert (number_of_points == distances->size);
   int k = 0;
   for (size_t point_index = 0; point_index < number_of_points; point_index++)
@@ -354,7 +353,7 @@ exchange_group_data (Dataset *dataset, Array *distances,
   if (group_rank == 0)
     {
       less_than_median_array = (int *) malloc (sizeof (int) * group_size);
-      master_buffer = stack_new (2 * dataset->size);
+      master_buffer = stack_new (2 * dataset->data.size);
     }
   MPI_Gather (&less_than_median_int, 1, MPI_INT, less_than_median_array, 1,
               MPI_INT, 0, group_comm);
@@ -384,17 +383,13 @@ exchange_group_data (Dataset *dataset, Array *distances,
         {
           request_master_recieve (&sending_process, master_buffer,
                                   less_than_median_array,
-                                  dataset->feature_count,
-                                  point_count (dataset->feature_count,
-                                               dataset->size),
-                                  0, group_comm, group_size);
+                                  dataset->feature_count, dataset->size, 0,
+                                  group_comm, group_size);
           // printf ("master recieved! sending_process: %d\n",
           // (sending_process - 1));
           request_master_send (&recieving_process, master_buffer,
                                less_than_median_array, dataset->feature_count,
-                               point_count (dataset->feature_count,
-                                            dataset->size),
-                               1, group_comm, group_size);
+                               dataset->size, 1, group_comm, group_size);
           // printf ("master send! recieving_process: %d\n",
           //   (recieving_process - 1));
         }
