@@ -4,6 +4,14 @@
 #include "dataset.h"
 #include <assert.h>
 
+/**
+ * @brief Structure representing a VP tre.
+ *
+ * The vantage points and the medians are stored in two binary heaps. For
+ * vp_heap, keep in mind that each point needs (feature count + 1) slots. You
+ * should therefore use vp_tree_read_vp() and vp_tree_write_vp() in conjunction
+ * with heap_parent_of(), heap_left_child_of() and heap_right_child_of().
+ */
 typedef struct
 {
   Dataset dataset;
@@ -11,24 +19,34 @@ typedef struct
   Array median_heap;
 } VPTree;
 
+/**
+ * Creates a VP tree from the given dataset. The items in the dataset are
+ * rearranged.
+ * @param dataset The dataset.
+ * @return A new VP tree based on the dataset.
+ */
 VPTree vp_tree_from_dataset (Dataset dataset);
+
+/**
+ * Frees the heaps of a VP tree.
+ * This does not deallocate the memory used by the dataset.
+ */
 void vp_tree_free (VPTree vp_tree);
 
+/**
+ * Reads a vantage point from the heap.
+ * @param vp_tree The tree to read from.
+ * @param vp The buffer to write the result into.
+ * @param heap_index The index (in points) within the heap.
+ */
 void vp_tree_read_vp (VPTree vp_tree, number_t *vp, size_t heap_index);
+
+/**
+ * @sa vp_tree_read_vp
+ */
 void vp_tree_write_vp (VPTree vp_tree, number_t *vp, size_t heap_index);
 
 /**
- * Generates an entire VP tree, recursively.
- * The heaps must have size at least dataset.size - 1.
- * @param dataset The dataset to split.
- * @param vp_heap A binary heap with the vantage points.
- * @param median_heap A binary heap with the median distances.
- * @param heap_root The index of within the heap where the next
- *                  vantage point and median should be written.
- *                  Usually, this should be 0.
- * @warning This function is NOT thread-safe.
+ * @brief Unit test.
  */
-void vp_tree_local_split (ArraySlice dataset, Array *vp_heap,
-                          Array *median_heap, size_t heap_root);
-
 void test_vp_tree_local ();
