@@ -184,7 +184,7 @@ void
 request_master_recieve (int *sending_process, Stack *master_buffer,
                         int *less_than_median_array, size_t feature_count,
                         size_t dataset_points_count, int is_sender_left,
-                        int group_comm, int group_size)
+                        MPI_Comm group_comm, int group_size)
 {
   if (is_sender_left)
     {
@@ -242,7 +242,7 @@ void
 request_master_send (int *recieving_process, Stack *master_buffer,
                      int *less_than_median_array, size_t feature_count,
                      size_t dataset_points_count, int is_reciever_left,
-                     int group_comm, int group_size)
+                     MPI_Comm group_comm, int group_size)
 {
   if (is_reciever_left)
     {
