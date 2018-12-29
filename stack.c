@@ -105,3 +105,9 @@ test_stack ()
 
   stack_free (stack);
 }
+
+size_t
+stack_get_free_space (Stack *stack)
+{
+  return stack->max_size - stack->top;
+}

@@ -89,6 +89,19 @@ void
 dataset_fill_random (Dataset dataset)
 {
   array_fill_random (dataset.data);
+  for (int i = 0; i < point_count (dataset.feature_count, dataset.size); i++)
+    {
+      dataset.data.data[point_offset (dataset.feature_count, i)] = i;
+    }
+  return dataset;
+}
+
+void
+point_fill_random (Point point)
+{
+  array_fill_random (point.data);
+  point.data.data[0] = 666; // Sataniasi full! oi euraioi siwnistes!
+  return point;
 }
 
 Point
@@ -186,4 +199,14 @@ test_dataset ()
   assert (fabs (distance - sqrtf (18)) <= __FLT_EPSILON__);
 
   dataset_free (d);
+}
+
+Dataset
+array_to_dataset (Array array, size_t feature_count)
+{
+  Dataset dataset
+    = dataset_new (feature_count, point_count (feature_count, array.size));
+  dataset.data.size = dataset.size;
+  dataset.data.data = array.data;
+  return dataset;
 }

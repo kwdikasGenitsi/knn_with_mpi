@@ -26,6 +26,8 @@ typedef struct
   ((index) * (feature_count + 1) + (feature) + 1)
 #define point_count(feature_count, dataset_size)                               \
   ((dataset_size) / (feature_count + 1))
+#define dataset_size(feature_count, point_count)                               \
+  ((feature_count + 1) * (point_count))
 
 typedef struct
 {
@@ -36,6 +38,7 @@ typedef struct
 
 Dataset dataset_new (size_t feature_count, size_t point_count);
 void dataset_fill_random (Dataset dataset);
+void point_fill_random (Point point);
 void dataset_free (Dataset dataset);
 
 /**
@@ -77,3 +80,4 @@ void print_dataset (Dataset *dataset);
 void print_point (Point point);
 
 void test_dataset ();
+Dataset array_to_dataset (Array array, size_t feature_count);

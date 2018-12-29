@@ -44,3 +44,5 @@ number_t stack_get_at (Stack *vp_stack, size_t index);
  * Minimal unit test.
  */
 void test_stack ();
+
+size_t stack_get_free_space (Stack *stack);
