@@ -147,4 +147,6 @@ test_dataset ()
     {
       assert (buffer[i] == (number_t) (i % 3));
     }
+
+  dataset_free (d);
 }
