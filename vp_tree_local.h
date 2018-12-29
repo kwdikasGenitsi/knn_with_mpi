@@ -1,7 +1,7 @@
 #pragma once
 
 #include "array.h"
-#include "point_and_dataset.h"
+#include "dataset.h"
 #include <assert.h>
 
 typedef struct

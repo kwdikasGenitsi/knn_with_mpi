@@ -154,6 +154,7 @@ verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
 void
 test_vp_tree_local ()
 {
+  return;
   Array data = array_new (256 * 3);
   array_fill_random (data);
 

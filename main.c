@@ -271,30 +271,6 @@ request_master_recieve (int *sending_process, MasterBuffer *master_buffer,
   // size!
 }
 
-int
-master_rank (int l)
-{
-  return world_rank - (world_rank % group_size (l));
-}
-
-void
-test_partitioning ()
-{
-  world_size = 16;
-  world_rank = 12;
-  assert (master_rank (0) == 0);
-  assert (master_rank (1) == 8);
-  assert (master_rank (2) == 12);
-}
-
-MPI_Comm
-communicator_for_level (int l)
-{
-  MPI_Comm c;
-  MPI_Comm_split (MPI_COMM_WORLD, group_number (l), 0, &c);
-  return c;
-}
-
 void
 split_parallel (Array *dataset, Stack *vp_stack, Stack *median_stack, int l)
 {
@@ -337,6 +313,30 @@ split_parallel (Array *dataset, Stack *vp_stack, Stack *median_stack, int l)
 #endif
 
 int
+master_rank (int l)
+{
+  return world_rank - (world_rank % group_size (l));
+}
+
+void
+test_partitioning ()
+{
+  world_size = 16;
+  world_rank = 12;
+  assert (master_rank (0) == 0);
+  assert (master_rank (1) == 8);
+  assert (master_rank (2) == 12);
+}
+
+MPI_Comm
+communicator_for_level (int l)
+{
+  MPI_Comm c;
+  MPI_Comm_split (MPI_COMM_WORLD, group_number (l), 0, &c);
+  return c;
+}
+
+int
 main (int argc, char **argv)
 {
   MPI_Init (&argc, &argv);
@@ -349,24 +349,12 @@ main (int argc, char **argv)
     {
       if (world_rank == 0)
         {
-          /*
           test_partitioning ();
           test_log2i ();
           test_stack ();
-          test_master_buffer_functionality ();
           test_vp_tree_local ();
+          test_dataset ();
           printf ("All tests sucessful.\n");
-          */
-          Dataset dataset = dataset_new (3, 5);
-          dataset_fill_random (dataset);
-          Point point = get_point_from_dataset (&dataset, 0);
-          Point point2 = get_point_from_dataset (&dataset, 1);
-          enter_point_to_dataset (&dataset, point2, 4);
-          print_dataset (&dataset);
-          print_point (point);
-          print_point (point2);
-          printf ("distance p1 from p2 is %f\n",
-                  eucledian_distance (point, point2));
         }
       return EXIT_SUCCESS;
     }

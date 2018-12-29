@@ -1,6 +1,7 @@
-#include "point_and_dataset.h"
+#include "dataset.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 Dataset
 dataset_new (size_t feature_count, size_t point_count)
@@ -35,6 +36,22 @@ dataset_free (Dataset dataset)
 }
 
 void
+dataset_write (Dataset dataset, number_t *data, size_t index, size_t count)
+{
+  size_t chunk_size = (dataset.feature_count + 1) * count;
+  size_t offset = index * (dataset.feature_count + 1);
+  memcpy (dataset.data.data + offset, data, chunk_size * sizeof (number_t));
+}
+
+void
+dataset_read (Dataset dataset, number_t *data, size_t index, size_t count)
+{
+  size_t chunk_size = (dataset.feature_count + 1) * count;
+  size_t offset = index * (dataset.feature_count + 1);
+  memcpy (data, dataset.data.data + offset, chunk_size * sizeof (number_t));
+}
+
+void
 dataset_fill_random (Dataset dataset)
 {
   array_fill_random (dataset.data);
@@ -42,7 +59,6 @@ dataset_fill_random (Dataset dataset)
     {
       dataset.data.data[point_offset (dataset.feature_count, i)] = i;
     }
-  return dataset;
 }
 
 Point
@@ -103,4 +119,32 @@ print_point (Point point)
       printf (" %f ", point.data.data[i]);
     }
   printf (")\n");
+}
+
+void
+test_dataset ()
+{
+  Dataset d = dataset_new (2, 10);
+  for (size_t i = 0; i < 10; i++)
+    {
+      for (size_t j = 0; j < 3; j++)
+        {
+          d.data.data[i * 3 + j] = j;
+        }
+    }
+
+  number_t buffer[] = {3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+  dataset_write (d, buffer, 3, 2);
+
+  for (size_t i = 9; i < 15; i++)
+    {
+      assert (d.data.data[i] == buffer[i - 9]);
+    }
+
+  dataset_read (d, buffer, 1, 2);
+
+  for (size_t i = 0; i < 6; i++)
+    {
+      assert (buffer[i] == (number_t) (i % 3));
+    }
 }

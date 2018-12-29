@@ -3,6 +3,7 @@
 #include "array.h"
 #include <assert.h>
 
+/** Incredibly inefficient data structure. */
 typedef struct
 {
   Array data;
@@ -33,15 +34,40 @@ typedef struct
   size_t feature_count;
 } Dataset;
 
-Point point_new (size_t feature_count);
 Dataset dataset_new (size_t feature_count, size_t point_count);
 void dataset_fill_random (Dataset dataset);
-
-void point_free (Point point);
 void dataset_free (Dataset dataset);
 
+/**
+ * Writes a point to the dataset, possibly overwriting an existing point.
+ * @param dataset The dataset to write into.
+ * @param data The index and the coordinates of the point.
+ * @param index The offset (in points) from the beginning of the dataset.
+ * @param count The number of points to write.
+ */
+void dataset_write (Dataset dataset, number_t *data, size_t index,
+                    size_t count);
+
+/**
+ * Reads a point from the dataset, possibly overwriting the buffer given.
+ * @param dataset The dataset to read from.
+ * @param data The buffer to write into.
+ * @param index The offset (in points) from the beginning of the dataset.
+ * @param count The number of points to read.
+ */
+void dataset_read (Dataset dataset, number_t *data, size_t index, size_t count);
+
+/**
+ * @note Leaving these here for compatibility purposes, but they should not
+ * be used since they are extremely low-performance given the 4-byte dynamic
+ * allocations.
+ */
+Point point_new (size_t feature_count);
+void point_free (Point point);
 Point get_point_from_dataset (Dataset *dataset, size_t index);
 void enter_point_to_dataset (Dataset *dataset, Point new_point, size_t index);
 
 void print_dataset (Dataset *dataset);
 void print_point (Point point);
+
+void test_dataset ();
