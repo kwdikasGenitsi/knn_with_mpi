@@ -1,6 +1,5 @@
 #include "median.h"
 #include "stack.h"
-#include "vp_master_buffer.h"
 #include "vp_tree_local.h"
 #include <assert.h>
 #include <math.h>
@@ -19,9 +18,6 @@
 
 int world_size;
 int world_rank;
-
-size_t g_feature_count;
-number_t *dataset;
 
 void
 test_log2i ()
