@@ -146,10 +146,6 @@ verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
   /* Get the median. */
   number_t median = tree.median_heap.data[heap_root];
 
-  VPComparisonContext ctx;
-  ctx.feature_count = tree.dataset.feature_count;
-  ctx.vp = vp;
-
   size_t middle = size / 2;
   for (size_t i = 0; i < size; i++)
     {

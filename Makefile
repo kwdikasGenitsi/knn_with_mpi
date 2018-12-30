@@ -1,5 +1,5 @@
 CC=mpicc
-CFLAGS=-Wall -Wextra -g
+CFLAGS=-Wall -Wextra -Werror -g
 OBJECTS=main.o stack.o vp_master_buffer.o array.o vp_tree_local.o dataset.o
 
 all: vp

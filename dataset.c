@@ -130,19 +130,15 @@ enter_point_to_dataset (Dataset *dataset, Point point, size_t index)
 void
 print_dataset (Dataset *dataset)
 {
+  printf ("{");
   for (size_t i = 0; i < dataset->size; i++)
     {
-      printf ("Point with index %d: (",
-              (int)
-                dataset->data.data[point_offset (dataset->feature_count, i)]);
-      for (size_t j = 0; j < dataset->feature_count; j++)
-        {
-          printf (
-            " %f ",
-            dataset->data.data[feature_offset (dataset->feature_count, i, j)]);
-        }
-      printf (")\n");
+      if (i != 0)
+        printf (", ");
+      number_t *point = dataset_point (*dataset, i);
+      dump_point (point, dataset->feature_count);
     }
+  printf ("}\n");
 }
 
 void
