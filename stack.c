@@ -69,7 +69,7 @@ void
 stack_push_buffer (Stack *stack, number_t *buffer, size_t size)
 {
   /* Prevent a stack overflow. */
-  assert ((stack->top + size) < stack->max_size);
+  assert ((stack->top + size) <= stack->max_size);
 
   memcpy (stack->stack + stack->top, buffer, sizeof (number_t) * size);
   stack->top += size;

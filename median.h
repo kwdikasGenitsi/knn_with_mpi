@@ -133,13 +133,13 @@ validation (float median, int partLength, int size, float *numberPart,
       if ((sumMax <= size / 2)
           && (sumMin <= size / 2)) // Checks if both the lower and higher values
                                    // occupy less than 50% of the total array.
-        printf ("VALIDATION PASSED!\n");
+        ;                          // printf ("VALIDATION PASSED!\n");
       else
         printf ("VALIDATION FAILED!\n");
 
-      printf ("Values greater than median: %d\n", sumMax);
-      printf ("Values equal to median: %d\n", sumEq);
-      printf ("Values lower than median: %d\n", sumMin);
+      // printf ("Values greater than median: %d\n", sumMax);
+      // printf ("Values equal to median: %d\n", sumEq);
+      // printf ("Values lower than median: %d\n", sumMin);
     }
 }
 
@@ -163,13 +163,14 @@ validationST (float median, int size, float *numberPart)
   if ((countMax <= size / 2)
       && (countMin <= size / 2)) // Checks if both the lower and higher values
                                  // occupy less than 50% of the total array.
-    printf ("VALIDATION PASSED!\n");
+    ;                            // printf ("VALIDATION PASSED!\n");
   else
-    printf ("VALIDATION FAILED!\n");
+    {
+    } // printf ("VALIDATION FAILED!\n");
 
-  printf ("Values greater than median: %d\n", countMax);
-  printf ("Values equal to median: %d\n", countEq);
-  printf ("Values lower than median: %d\n", countMin);
+  // printf ("Values greater than median: %d\n", countMax);
+  // printf ("Values equal to median: %d\n", countEq);
+  // printf ("Values lower than median: %d\n", countMin);
 }
 
 /****Part executed only by the Master Node****/
@@ -250,9 +251,10 @@ float masterPart (int world_size, int world_rank, int size, int partLength,
                 }
               lapsed.tv_usec = second.tv_usec - first.tv_usec;
               lapsed.tv_sec = second.tv_sec - first.tv_sec;
-              printf ("Time elapsed: %lu, %lu s\n",
-                      (unsigned long) lapsed.tv_sec,
-                      (unsigned long) lapsed.tv_usec);
+              lapsed = lapsed;
+              // printf ("Time elapsed: %lu, %lu s\n",
+              //      (unsigned long) lapsed.tv_sec,
+              //     (unsigned long) lapsed.tv_usec);
               validation (median, partLength, size, numberPart, world_rank,
                           comm);
               // MPI_Finalize();
@@ -406,8 +408,8 @@ float masterPart (int world_size, int world_rank, int size, int partLength,
             }
           lapsed.tv_usec = second.tv_usec - first.tv_usec;
           lapsed.tv_sec = second.tv_sec - first.tv_sec;
-          printf ("Time elapsed: %lu, %lu s\n", (unsigned long) lapsed.tv_sec,
-                  (unsigned long) lapsed.tv_usec);
+          /* printf ("Time elapsed: %lu, %lu s\n", (unsigned long)
+             lapsed.tv_sec, (unsigned long) lapsed.tv_usec); */
           validation (median, partLength, size, numberPart, world_rank, comm);
           // MPI_Finalize();
           free (pivotArray);

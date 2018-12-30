@@ -25,7 +25,8 @@ mpi_partition_by_value (Dataset dataset, Array values, number_t threshold,
   for (size_t i = 0; i < dataset.size; i++)
     {
       number_t value = values.data[i];
-      if ((is_left && (value > threshold)) || (!is_left && (value < threshold)))
+      if ((is_left && (value > threshold))
+          || (!is_left && (value <= threshold)))
         {
           number_t *point = dataset_point (dataset, i);
           stack_push_buffer (stack, point, stride);
@@ -43,10 +44,33 @@ mpi_partition_by_value (Dataset dataset, Array values, number_t threshold,
   MPI_Gather (&elements_to_swap, 1, MPI_UINT64_T, elements, 1, MPI_UINT64_T, 0,
               comm);
 
+  if (rank == 0)
+    {
+      printf ("Elements: ");
+      for (int i = 0; i < comm_size; i++)
+        {
+          printf ("[%zu]", elements[i] / (dataset.feature_count + 1));
+        }
+      printf ("\n");
+    }
+
+  /* Print the stacks to send. */
+  for (int i = 0; i < comm_size; i++)
+    {
+      MPI_Barrier (comm);
+      if (i == rank)
+        {
+          printf ("Rank %d: ", i);
+          stack_dump (stack);
+          printf ("\n");
+        }
+    }
+  MPI_Barrier (comm);
+
   Array receive_buffer = array_new (elements_to_swap);
   if (rank == 0)
     {
-      Stack *buffer_stack = stack_new (dataset.data.size * 2);
+      Stack *buffer_stack = stack_new (dataset.data.size * 4);
       int middle_rank = comm_size / 2;
       int sending_rank = middle_rank;
 
@@ -176,16 +200,34 @@ test_mpi_partition_by_value ()
 
   Array values = array_new (dataset.size);
 
+  number_t local_sum = 0.0f;
   for (size_t i = 0; i < dataset.size; i++)
     {
       number_t *point = dataset_point (dataset, i);
       point[0] = (number_t) (i + rank * dataset.size); /* Random ID. */
       /* Should produce an equal number of 0s and 1s. */
-      point[1] = (number_t) (i % 2);
+      point[1] = (number_t) (i + (comm_size - rank - 1) * dataset.size);
       values.data[i] = point[1];
+      local_sum += point[1];
     }
 
-  mpi_partition_by_value (dataset, values, 0.5f, MPI_COMM_WORLD);
+  /* Sum all the elements. */
+  number_t sum = 0.0f;
+  MPI_Reduce (&local_sum, &sum, 1, MPI_NUMBER_T, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  number_t median = (dataset.size * comm_size - 1) / 2.0f;
+
+  mpi_partition_by_value (dataset, values, median, MPI_COMM_WORLD);
+
+  /* Check that the sum is the same. */
+  number_t new_sum = 0.0f;
+  local_sum = 0.0f;
+  for (size_t i = 0; i < dataset.size; i++)
+    local_sum += dataset_point (dataset, i)[1];
+  MPI_Reduce (&local_sum, &new_sum, 1, MPI_NUMBER_T, MPI_SUM, 0,
+              MPI_COMM_WORLD);
+
+  assert (new_sum == sum);
 
   bool is_left = rank < (comm_size / 2) ? true : false;
 
@@ -194,11 +236,11 @@ test_mpi_partition_by_value ()
       number_t *point = dataset_point (dataset, i);
       if (is_left)
         {
-          assert (point[1] <= 0.5f);
+          assert (point[1] <= median);
         }
       else
         {
-          assert (point[1] >= 0.5f);
+          assert (point[1] >= median);
         }
     }
 

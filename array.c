@@ -1,4 +1,5 @@
 #include "array.h"
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -59,9 +60,10 @@ void
 array_fill_random (Array array)
 {
   int cal = 5;
+  MPI_Comm_rank (MPI_COMM_WORLD, &cal);
   srand ((cal + 1) * time (NULL));
   for (size_t i = 0; i < array.size; i++)
-    array.data[i] = (number_t) (rand () - rand ()) * 0.05f;
+    array.data[i] = (number_t) (rand () % 100000 - rand () % 100000) * 0.0001f;
 }
 
 size_t

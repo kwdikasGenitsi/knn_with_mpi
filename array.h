@@ -3,6 +3,13 @@
 #include <assert.h>
 #include <stddef.h>
 
+#define UNUSED(expr)                                                           \
+  do                                                                           \
+    {                                                                          \
+      (void) (expr);                                                           \
+    }                                                                          \
+  while (0)
+
 /**
  * The number type used to represent the dataset.
  * Defined here so that it can be changed to a double.
