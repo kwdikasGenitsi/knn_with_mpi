@@ -401,13 +401,13 @@ main (int argc, char **argv)
           test_stack ();
           test_dataset ();
           test_vp_tree_local ();
-          test_partition_by_value ();
           printf ("All tests sucessful.\n");
         }
       MPI_Finalize ();
       return EXIT_SUCCESS;
     }
 
+  test_partition_by_value ();
   /*
   Array dataset = array_new (5);
   array_fill_random (dataset);
