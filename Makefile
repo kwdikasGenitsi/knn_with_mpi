@@ -1,6 +1,6 @@
 CC=mpicc
 CFLAGS=-Wall -Wextra -Werror -g
-OBJECTS=main.o stack.o array.o vp_tree_local.o dataset.o
+OBJECTS=main.o stack.o array.o vp_tree_local.o dataset.o mpi_partition.o
 
 all: vp
 
