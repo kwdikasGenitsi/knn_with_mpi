@@ -66,6 +66,10 @@ dump_point (number_t *p, size_t feature_count)
 number_t
 point_distance (number_t *p1, number_t *p2, size_t feature_count)
 {
+  /* The special ID _FLT_MAX_ signifies a point in infinity. */
+  if ((*p1 == __FLT_MAX__) || (*p2 == __FLT_MAX__))
+    return __FLT_MAX__;
+
   /* Increase the two pointers by 1 to skip the index. */
   p1++;
   p2++;

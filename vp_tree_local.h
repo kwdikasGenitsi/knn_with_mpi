@@ -52,7 +52,18 @@ void vp_tree_write_vp (VPTree vp_tree, number_t *vp, size_t heap_index);
 void test_vp_tree_local ();
 
 /**
+ * @brief
+ */
+void test_vp_queue ();
+
+/**
  * Verifies the correctness of a local VP tree.
  */
 void vp_tree_local_verify (VPTree tree, size_t offset, size_t size,
                            size_t heap_root);
+
+/**
+ * Performs a search in a local VP tree.
+ */
+void vp_tree_search (VPTree tree, Dataset knn, number_t *target, size_t offset,
+                     size_t size, size_t heap_root);

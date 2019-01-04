@@ -64,6 +64,7 @@ main (int argc, char **argv)
           test_stack ();
           test_dataset ();
           test_vp_tree_local ();
+          test_vp_queue ();
         }
       MPI_Barrier (MPI_COMM_WORLD);
       test_mpi_partition_by_value ();
