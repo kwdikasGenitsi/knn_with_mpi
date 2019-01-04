@@ -171,7 +171,7 @@ vp_tree_local_verify (VPTree tree, size_t offset, size_t size, size_t heap_root)
 void
 test_vp_tree_local ()
 {
-  Dataset dataset = dataset_new (2, 16);
+  Dataset dataset = dataset_new (2, 1024);
   dataset_fill_random (dataset);
 
   VPTree tree = vp_tree_from_dataset (dataset);
@@ -185,14 +185,34 @@ test_vp_tree_local ()
       number_t *point = dataset_point (knn, i);
       point[0] = __FLT_MAX__;
       point[1] = 1.0f;
-      point[2] = 666.f;
+      point[2] = 57.f;
     }
 
   number_t target[3] = {0.0f, 0.0f, 0.0f};
 
-  print_dataset (&dataset);
   vp_tree_search (tree, knn, target, 0, dataset.size, 0);
-  print_dataset (&knn);
+
+  for (size_t i = 0; i < knn.size - 1; i++)
+    {
+      number_t *current = dataset_point (knn, i);
+      number_t *next = dataset_point (knn, i + 1);
+      assert (point_distance (current, target, knn.feature_count)
+              <= point_distance (next, target, knn.feature_count));
+    }
+  number_t *last_neighbor = dataset_point (knn, k - 1);
+  number_t last_distance
+    = point_distance (last_neighbor, target, knn.feature_count);
+
+  size_t further_away_count = 0;
+  for (size_t i = 0; i < dataset.size; i++)
+    {
+      number_t distance = point_distance (dataset_point (dataset, i), target,
+                                          knn.feature_count);
+      if (distance > last_distance)
+        further_away_count++;
+    }
+  assert (further_away_count == (dataset.size - k));
+
   dataset_free (knn);
 
   dataset_free (dataset);
