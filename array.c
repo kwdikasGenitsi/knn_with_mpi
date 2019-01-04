@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 Array
@@ -11,6 +12,16 @@ array_new (size_t size)
   array.data = (number_t *) malloc (sizeof (number_t) * size);
   array.size = size;
   return array;
+}
+
+Array
+array_copy (Array rhs)
+{
+  Array new_array;
+  new_array.data = (number_t *) malloc (sizeof (number_t) * rhs.size);
+  new_array.size = rhs.size;
+  memcpy (new_array.data, rhs.data, sizeof (number_t) * rhs.size);
+  return new_array;
 }
 
 void

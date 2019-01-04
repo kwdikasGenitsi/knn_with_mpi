@@ -33,10 +33,17 @@ typedef struct
 /**
  * Creates a new array.
  * @param size The number of elements the array must hold.
- * @return A pointer to an Array structure that must be freed
+ * @return A new Array structure that must be freed
  *         with array_free().
  */
 Array array_new (size_t size);
+
+/**
+ * Deep copies an array.
+ * @param rhs The array to copy.
+ * @return A new array structure that must be freed with array_free().
+ */
+Array array_copy (Array rhs);
 
 /**
  * Creates a new array that points to a subarray within the original Array.
