@@ -130,8 +130,8 @@ vp_tree_write_vp (VPTree vp_tree, number_t *vp, size_t heap_index)
  * @param heap_root The location of the vp and the median for this particular
  *                  level within the heaps.
  */
-static void
-verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
+void
+vp_tree_local_verify (VPTree tree, size_t offset, size_t size, size_t heap_root)
 {
   if (size <= 1)
     return;
@@ -163,9 +163,9 @@ verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
     }
 
   /* Verify the children. */
-  verify_tree (tree, offset, size / 2, heap_left_child_of (heap_root));
-  verify_tree (tree, offset + size / 2, size / 2,
-               heap_right_child_of (heap_root));
+  vp_tree_local_verify (tree, offset, size / 2, heap_left_child_of (heap_root));
+  vp_tree_local_verify (tree, offset + size / 2, size / 2,
+                        heap_right_child_of (heap_root));
 }
 
 void
@@ -176,7 +176,7 @@ test_vp_tree_local ()
 
   VPTree tree = vp_tree_from_dataset (dataset);
 
-  verify_tree (tree, 0, dataset.size, 0);
+  vp_tree_local_verify (tree, 0, dataset.size, 0);
 
   dataset_free (dataset);
   vp_tree_free (tree);

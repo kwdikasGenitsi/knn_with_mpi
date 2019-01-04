@@ -93,7 +93,7 @@ vp_tree_dist_from_dataset (Dataset dataset)
   tree.dataset = dataset;
 
   Array distances = array_new (dataset.size);
-  for (size_t i = 0; i < 1; i++)
+  for (size_t i = 0; i < tree_depth; i++)
     {
       /* Create a communicator. */
       MPI_Comm comm = communicator_for_level (i);
@@ -114,26 +114,14 @@ vp_tree_dist_from_dataset (Dataset dataset)
       /* Find the distances within the local dataset. */
       write_distances_from_vp (distances, dataset, vp);
 
-      if (comm_rank == 0)
-        {
-          printf ("Before partitioning: ");
-          array_dump (distances);
-        }
-
       /* Find the median distance. */
+      Array values_to_shuffle = array_copy (distances);
       number_t median
-        = get_median_distance (distances, comm, comm_rank, comm_size)
-          + 0.0f; // 0.000005f;
+        = get_median_distance (values_to_shuffle, comm, comm_rank, comm_size);
+      array_free (values_to_shuffle);
 
       /* Partition the data around the median distance. */
       mpi_partition_by_value (dataset, distances, median, comm);
-
-      if (comm_rank == 0)
-        {
-          printf ("Median: %f - ", median);
-          write_distances_from_vp (distances, dataset, vp);
-          array_dump (distances);
-        }
 
       /* Write the vp into the array. */
       vp_tree_dist_write_vp (tree, vp, i);
@@ -142,6 +130,8 @@ vp_tree_dist_from_dataset (Dataset dataset)
       tree.medians.data[i] = median;
     }
   array_free (distances);
+
+  tree.local_tree = vp_tree_from_dataset (tree.dataset);
 
   return tree;
 }
@@ -199,17 +189,17 @@ verify_vp_tree_dist (VPTreeDistributed tree)
       MPI_Comm_free (&comm);
     }
   array_free (distances);
+  vp_tree_local_verify (tree.local_tree, 0, tree.dataset.size, 0);
 }
 
 void
 test_vp_tree_distributed ()
 {
-  Dataset dataset = dataset_new (2, 4);
+  Dataset dataset = dataset_new (2, 1024);
   dataset_fill_random (dataset);
 
   VPTreeDistributed tree = vp_tree_dist_from_dataset (dataset);
   verify_vp_tree_dist (tree);
-  UNUSED (tree);
 
   dataset_free (dataset);
 }

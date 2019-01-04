@@ -1,11 +1,13 @@
 #pragma once
 #include "dataset.h"
+#include "vp_tree_local.h"
 
 typedef struct
 {
   Dataset dataset;
   Array vps;
   Array medians;
+  VPTree local_tree;
 } VPTreeDistributed;
 
 VPTreeDistributed vp_tree_dist_from_dataset (Dataset dataset);
