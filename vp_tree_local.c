@@ -338,8 +338,8 @@ vp_tree_find_knn (VPTree tree, number_t *target, size_t k)
     {
       number_t *point = dataset_point (knn, i);
       point[0] = __FLT_MAX__;
-      point[1] = 1.0f;
-      point[2] = 57.f;
+      for (size_t i = 0; i < knn.feature_count; i++)
+        point[i + 1] = 57.0f;
     }
 
   vp_tree_search (tree, knn, target, 0, tree.dataset.size, 0);
