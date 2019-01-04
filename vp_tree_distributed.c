@@ -157,6 +157,58 @@ vp_tree_dist_read_vp (VPTreeDistributed tree, number_t *vp, size_t index)
           sizeof (number_t) * (tree.dataset.feature_count + 1));
 }
 
+Dataset
+vp_tree_dist_find_knn (VPTreeDistributed tree, number_t *target, size_t k)
+{
+  int world_size, world_rank;
+  MPI_Comm_rank (MPI_COMM_WORLD, &world_rank);
+  MPI_Comm_size (MPI_COMM_WORLD, &world_size);
+  MPI_Bcast (target, tree.dataset.feature_count + 1, MPI_NUMBER_T, 0,
+             MPI_COMM_WORLD);
+  MPI_Bcast (&k, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+  /* Find the local nearest neighbors. */
+  Dataset knn = vp_tree_find_knn (tree.local_tree, target, k);
+
+  size_t tree_depth = tree.medians.size;
+
+  for (size_t i = 0; i < tree_depth; i++)
+    {
+      /* Create a communicator. */
+      MPI_Comm comm = communicator_for_level (tree_depth - i - 1);
+
+      int comm_size, comm_rank;
+      MPI_Comm_size (comm, &comm_size);
+      MPI_Comm_rank (comm, &comm_rank);
+      int middle_rank = comm_size / 2;
+
+      /* If we are the root, receive the right leaf and merge the results. */
+      if (comm_rank == 0)
+        {
+          Dataset incoming = dataset_new (knn.feature_count, knn.size);
+          MPI_Recv (incoming.data.data, k * (knn.feature_count + 1),
+                    MPI_NUMBER_T, middle_rank, 0, comm, MPI_STATUS_IGNORE);
+          for (size_t j = 0; j < incoming.size; j++)
+            {
+              number_t *point = dataset_point (incoming, j);
+              queue_insert (knn, point, target);
+            }
+          dataset_free (incoming);
+        }
+      else if (comm_rank == comm_size / 2)
+        {
+          /* Send our so-far findings to the master. */
+          MPI_Send (knn.data.data, k * (knn.feature_count + 1), MPI_NUMBER_T, 0,
+                    0, comm);
+        }
+      else
+        continue;
+      MPI_Comm_free (&comm);
+    }
+
+  /* Only the world root will return the correct result. */
+  return knn;
+}
+
 void
 verify_vp_tree_dist (VPTreeDistributed tree)
 {
@@ -201,5 +253,41 @@ test_vp_tree_distributed ()
   VPTreeDistributed tree = vp_tree_dist_from_dataset (dataset);
   verify_vp_tree_dist (tree);
 
+  number_t target[3] = {0.0f, 0.0f, 0.0f};
+  Dataset nearest8 = vp_tree_dist_find_knn (tree, target, 8);
+
+  number_t *last_neighbor = dataset_point (nearest8, nearest8.size - 1);
+  MPI_Bcast (last_neighbor, dataset.feature_count + 1, MPI_NUMBER_T, 0,
+             MPI_COMM_WORLD);
+  number_t furthest_distance
+    = point_distance (last_neighbor, target, dataset.feature_count);
+
+  /* Count the number of elements further away from the target than the last
+   * neighbor, and make sure it equals dataset size - k.
+   */
+  int local_count = 0;
+  for (size_t i = 0; i < dataset.size; i++)
+    {
+      number_t *point = dataset_point (dataset, i);
+      number_t distance = point_distance (point, target, dataset.feature_count);
+      if (distance > furthest_distance)
+        local_count++;
+    }
+
+  int total_count = 0;
+  MPI_Reduce (&local_count, &total_count, 1, MPI_NUMBER_T, MPI_SUM, 0,
+              MPI_COMM_WORLD);
+
+  int rank, world_size;
+  MPI_Comm_rank (MPI_COMM_WORLD, &rank);
+  MPI_Comm_size (MPI_COMM_WORLD, &world_size);
+
+  if (rank == 0)
+    {
+      assert ((size_t) total_count
+              == dataset.size * world_size - nearest8.size);
+    }
+
+  dataset_free (nearest8);
   dataset_free (dataset);
 }

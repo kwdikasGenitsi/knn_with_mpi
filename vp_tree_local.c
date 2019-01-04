@@ -212,7 +212,7 @@ test_vp_tree_local ()
 
 void write_distances_from_vp (Array dest, Dataset dataset, number_t *vp);
 
-static void
+void
 queue_insert (Dataset knn, number_t *point, number_t *target)
 {
   Array distances = array_new (knn.size);
