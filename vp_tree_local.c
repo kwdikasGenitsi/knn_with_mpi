@@ -179,18 +179,9 @@ test_vp_tree_local ()
   vp_tree_local_verify (tree, 0, dataset.size, 0);
 
   size_t k = 4;
-  Dataset knn = dataset_new (dataset.feature_count, k);
-  for (size_t i = 0; i < knn.size; i++)
-    {
-      number_t *point = dataset_point (knn, i);
-      point[0] = __FLT_MAX__;
-      point[1] = 1.0f;
-      point[2] = 57.f;
-    }
-
   number_t target[3] = {0.0f, 0.0f, 0.0f};
 
-  vp_tree_search (tree, knn, target, 0, dataset.size, 0);
+  Dataset knn = vp_tree_find_knn (tree, target, k);
 
   for (size_t i = 0; i < knn.size - 1; i++)
     {
@@ -281,7 +272,7 @@ test_vp_queue ()
     }
 }
 
-void
+static void
 vp_tree_search (VPTree tree, Dataset knn, number_t *target, size_t offset,
                 size_t size, size_t heap_root)
 {
@@ -333,4 +324,24 @@ vp_tree_search (VPTree tree, Dataset knn, number_t *target, size_t offset,
                           heap_left_child_of (heap_root));
         }
     }
+}
+
+Dataset
+vp_tree_find_knn (VPTree tree, number_t *target, size_t k)
+{
+  Dataset knn = dataset_new (tree.dataset.feature_count, k);
+
+  /* Initialize the ID of all points to __FLT_MAX__ so that they will
+   * be overwritten by any other actual point in the dataset.
+   */
+  for (size_t i = 0; i < knn.size; i++)
+    {
+      number_t *point = dataset_point (knn, i);
+      point[0] = __FLT_MAX__;
+      point[1] = 1.0f;
+      point[2] = 57.f;
+    }
+
+  vp_tree_search (tree, knn, target, 0, tree.dataset.size, 0);
+  return knn;
 }
