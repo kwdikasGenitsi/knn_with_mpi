@@ -141,6 +141,7 @@ vp_tree_dist_free (VPTreeDistributed tree)
 {
   array_free (tree.vps);
   array_free (tree.medians);
+  vp_tree_free (tree.local_tree);
 }
 
 void
