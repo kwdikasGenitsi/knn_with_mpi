@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 int world_size;
 int world_rank;
@@ -38,6 +39,14 @@ less_than_median (Array *distances, number_t median_distance)
         }
     }
   return count_points;
+}
+
+static long
+delta_in_millis (struct timeval *start, struct timeval *end)
+{
+  long start_ms = start->tv_sec * 1000 + start->tv_usec / 1000;
+  long end_ms = end->tv_sec * 1000 + end->tv_usec / 1000;
+  return end_ms - start_ms;
 }
 
 int
@@ -69,7 +78,7 @@ main (int argc, char **argv)
       MPI_Barrier (MPI_COMM_WORLD);
       test_mpi_partition_by_value ();
       MPI_Barrier (MPI_COMM_WORLD);
-      // test_vp_tree_distributed ();
+      test_vp_tree_distributed ();
 
       /* For some reason this gets corrupted. */
       MPI_Comm_rank (MPI_COMM_WORLD, &world_rank);
@@ -80,21 +89,47 @@ main (int argc, char **argv)
       return EXIT_SUCCESS;
     }
 
-  test_vp_tree_distributed ();
-  /*
-  Array dataset = array_new (5);
-  array_fill_random (dataset);
-  int tree_depth = log2i (dataset.size * world_size);
-  Stack *vp_stack = stack_new (tree_depth);
-  Stack *median_stack = stack_new (tree_depth);
+  /* Parse the arguments. */
+  size_t n = (size_t) (1 << atoi (argv[1]));
+  size_t k = (size_t) (1 << atoi (argv[2]));
 
-  for (int l = 0; group_size (l) > 1; l++)
+  size_t n_per_process = n / world_size;
+
+  Dataset data = dataset_new (2, n_per_process);
+  dataset_fill_random (data);
+
+  struct timeval start, end;
+  MPI_Barrier (MPI_COMM_WORLD);
+  gettimeofday (&start, NULL);
+  VPTreeDistributed tree = vp_tree_dist_from_dataset (data);
+  MPI_Barrier (MPI_COMM_WORLD);
+  gettimeofday (&end, NULL);
+
+  long construction_time_ms = delta_in_millis (&start, &end);
+  if (world_rank == 0)
+    printf ("Construction time: %ld ms\n", construction_time_ms);
+
+  vp_tree_dist_free (tree);
+
+  MPI_Barrier (MPI_COMM_WORLD);
+  gettimeofday (&start, NULL);
+  for (int i = 0; i < world_size; i++)
     {
-      split_parallel (dataset, vp_stack, median_stack, l);
+      for (size_t j = 0; j < data.size; j++)
+        {
+          number_t *target = dataset_point (data, j);
+          Dataset nearest = vp_tree_dist_find_knn (tree, target, k);
+          dataset_free (nearest);
+        }
     }
+  MPI_Barrier (MPI_COMM_WORLD);
+  gettimeofday (&end, NULL);
 
-  array_free (dataset);
-  */
+  long all_knn_ms = delta_in_millis (&start, &end);
+  if (world_rank == 0)
+    printf ("All KNN time: %ld s\n", all_knn_ms);
+
+  dataset_free (data);
   MPI_Finalize ();
 
   return EXIT_SUCCESS;
