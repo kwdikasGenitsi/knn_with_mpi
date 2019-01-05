@@ -66,6 +66,10 @@ dump_point (number_t *p, size_t feature_count)
 number_t
 point_distance (number_t *p1, number_t *p2, size_t feature_count)
 {
+  /* The special ID _FLT_MAX_ signifies a point in infinity. */
+  if ((*p1 == __FLT_MAX__) || (*p2 == __FLT_MAX__))
+    return __FLT_MAX__;
+
   /* Increase the two pointers by 1 to skip the index. */
   p1++;
   p2++;
@@ -130,19 +134,15 @@ enter_point_to_dataset (Dataset *dataset, Point point, size_t index)
 void
 print_dataset (Dataset *dataset)
 {
+  printf ("{");
   for (size_t i = 0; i < dataset->size; i++)
     {
-      printf ("Point with index %d: (",
-              (int)
-                dataset->data.data[point_offset (dataset->feature_count, i)]);
-      for (size_t j = 0; j < dataset->feature_count; j++)
-        {
-          printf (
-            " %f ",
-            dataset->data.data[feature_offset (dataset->feature_count, i, j)]);
-        }
-      printf (")\n");
+      if (i != 0)
+        printf (", ");
+      number_t *point = dataset_point (*dataset, i);
+      dump_point (point, dataset->feature_count);
     }
+  printf ("}\n");
 }
 
 void

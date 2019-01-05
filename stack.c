@@ -1,5 +1,6 @@
 #include "stack.h"
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -24,7 +25,7 @@ void
 stack_push (Stack *stack, number_t element)
 {
   /* Prevent a stack overflow. */
-  assert ((stack->top + 1) < stack->max_size);
+  assert ((stack->top + 1) <= stack->max_size);
 
   stack->stack[stack->top++] = element;
 }
@@ -39,32 +40,54 @@ stack_pop (Stack *stack)
 }
 
 void
-stack_push_array (Stack *stack, Array *array)
+stack_push_array (Stack *stack, Array array)
 {
   /* Prevent a stack overflow. */
-  assert ((stack->top + array->size) < stack->max_size);
+  assert ((stack->top + array.size) <= stack->max_size);
 
-  memcpy (stack->stack, array->data, sizeof (number_t) * array->size);
-  stack->top += array->size;
+  memcpy (stack->stack + stack->top, array.data,
+          sizeof (number_t) * array.size);
+  stack->top += array.size;
 }
 
 void
-stack_pop_array (Stack *stack, Array *array, size_t offset, size_t length)
+stack_pop_array (Stack *stack, Array array, size_t offset, size_t length)
 {
   /* Make sure the array can store the result. */
-  assert ((array->size - offset) >= length);
+  assert ((array.size - offset) >= length);
 
   /* Prevent an underflow. */
   assert (stack->top >= length);
 
-  memcpy (array->data + offset, stack->stack + stack->top - length,
+  memcpy (array.data + offset, stack->stack + stack->top - length,
           length * sizeof (number_t));
 
   stack->top -= length;
 }
 
+void
+stack_push_buffer (Stack *stack, number_t *buffer, size_t size)
+{
+  /* Prevent a stack overflow. */
+  assert ((stack->top + size) <= stack->max_size);
+
+  memcpy (stack->stack + stack->top, buffer, sizeof (number_t) * size);
+  stack->top += size;
+}
+
+void
+stack_pop_buffer (Stack *stack, number_t *buffer, size_t size)
+{
+  /* Prevent an underflow. */
+  assert (stack->top >= size);
+
+  memcpy (buffer, stack->stack + stack->top - size, size * sizeof (number_t));
+
+  stack->top -= size;
+}
+
 size_t
-stack_get_max_max_size (Stack *stack)
+stack_get_max_size (Stack *stack)
 {
   return stack->max_size;
 }
@@ -73,6 +96,17 @@ size_t
 stack_get_size (Stack *stack)
 {
   return stack->top;
+}
+
+void
+stack_dump (Stack *stack)
+{
+  printf ("[");
+  for (size_t i = 0; i < stack->top; i++)
+    {
+      printf ("%s%f", i == 0 ? "" : ", ", stack->stack[i]);
+    }
+  printf ("]");
 }
 
 /**
@@ -96,7 +130,7 @@ test_stack ()
 
   assert (stack_get_at (stack, 0) == (number_t) 57.0f);
   assert (stack_get_at (stack, 1) == (number_t) 11.0f);
-  assert (stack_get_max_max_size (stack) == 5);
+  assert (stack_get_max_size (stack) == 5);
   assert (stack_get_size (stack) == 2);
   assert (stack_pop (stack) == (number_t) 11.0f);
   assert (stack_get_size (stack) == 1);

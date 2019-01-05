@@ -50,3 +50,21 @@ void vp_tree_write_vp (VPTree vp_tree, number_t *vp, size_t heap_index);
  * @brief Unit test.
  */
 void test_vp_tree_local ();
+
+/**
+ * Verifies the correctness of a local VP tree.
+ */
+void vp_tree_local_verify (VPTree tree, size_t offset, size_t size,
+                           size_t heap_root);
+
+/**
+ * Performs a search in a local VP tree.
+ * @param tree The tree to search.
+ * @param target The target point (must also have an ID at the start).
+ * @param k The number of nearest neighbors to find.
+ */
+Dataset vp_tree_find_knn (VPTree tree, number_t *target, size_t k);
+
+void queue_insert (Dataset knn, number_t *point, number_t *target);
+
+void test_vp_queue ();

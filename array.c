@@ -1,6 +1,8 @@
 #include "array.h"
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 Array
@@ -10,6 +12,16 @@ array_new (size_t size)
   array.data = (number_t *) malloc (sizeof (number_t) * size);
   array.size = size;
   return array;
+}
+
+Array
+array_copy (Array rhs)
+{
+  Array new_array;
+  new_array.data = (number_t *) malloc (sizeof (number_t) * rhs.size);
+  new_array.size = rhs.size;
+  memcpy (new_array.data, rhs.data, sizeof (number_t) * rhs.size);
+  return new_array;
 }
 
 void
@@ -59,9 +71,10 @@ void
 array_fill_random (Array array)
 {
   int cal = 5;
+  MPI_Comm_rank (MPI_COMM_WORLD, &cal);
   srand ((cal + 1) * time (NULL));
   for (size_t i = 0; i < array.size; i++)
-    array.data[i] = (number_t) (rand () - rand ()) * 0.05f;
+    array.data[i] = (number_t) (rand () % 100000 - rand () % 100000) * 0.0001f;
 }
 
 size_t

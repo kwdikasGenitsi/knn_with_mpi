@@ -130,8 +130,8 @@ vp_tree_write_vp (VPTree vp_tree, number_t *vp, size_t heap_index)
  * @param heap_root The location of the vp and the median for this particular
  *                  level within the heaps.
  */
-static void
-verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
+void
+vp_tree_local_verify (VPTree tree, size_t offset, size_t size, size_t heap_root)
 {
   if (size <= 1)
     return;
@@ -145,10 +145,6 @@ verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
 
   /* Get the median. */
   number_t median = tree.median_heap.data[heap_root];
-
-  VPComparisonContext ctx;
-  ctx.feature_count = tree.dataset.feature_count;
-  ctx.vp = vp;
 
   size_t middle = size / 2;
   for (size_t i = 0; i < size; i++)
@@ -167,9 +163,9 @@ verify_tree (VPTree tree, size_t offset, size_t size, size_t heap_root)
     }
 
   /* Verify the children. */
-  verify_tree (tree, offset, size / 2, heap_left_child_of (heap_root));
-  verify_tree (tree, offset + size / 2, size / 2,
-               heap_right_child_of (heap_root));
+  vp_tree_local_verify (tree, offset, size / 2, heap_left_child_of (heap_root));
+  vp_tree_local_verify (tree, offset + size / 2, size / 2,
+                        heap_right_child_of (heap_root));
 }
 
 void
@@ -180,8 +176,172 @@ test_vp_tree_local ()
 
   VPTree tree = vp_tree_from_dataset (dataset);
 
-  verify_tree (tree, 0, dataset.size, 0);
+  vp_tree_local_verify (tree, 0, dataset.size, 0);
+
+  size_t k = 4;
+  number_t target[3] = {0.0f, 0.0f, 0.0f};
+
+  Dataset knn = vp_tree_find_knn (tree, target, k);
+
+  for (size_t i = 0; i < knn.size - 1; i++)
+    {
+      number_t *current = dataset_point (knn, i);
+      number_t *next = dataset_point (knn, i + 1);
+      assert (point_distance (current, target, knn.feature_count)
+              <= point_distance (next, target, knn.feature_count));
+    }
+  number_t *last_neighbor = dataset_point (knn, k - 1);
+  number_t last_distance
+    = point_distance (last_neighbor, target, knn.feature_count);
+
+  size_t further_away_count = 0;
+  for (size_t i = 0; i < dataset.size; i++)
+    {
+      number_t distance = point_distance (dataset_point (dataset, i), target,
+                                          knn.feature_count);
+      if (distance > last_distance)
+        further_away_count++;
+    }
+  assert (further_away_count == (dataset.size - k));
+
+  dataset_free (knn);
 
   dataset_free (dataset);
   vp_tree_free (tree);
+}
+
+void write_distances_from_vp (Array dest, Dataset dataset, number_t *vp);
+
+void
+queue_insert (Dataset knn, number_t *point, number_t *target)
+{
+  Array distances = array_new (knn.size);
+  write_distances_from_vp (distances, knn, target);
+
+  number_t new_distance = point_distance (point, target, knn.feature_count);
+
+  size_t insert_location = 0;
+
+  while ((distances.data[insert_location] < new_distance)
+         && (insert_location < distances.size))
+    insert_location++;
+
+  if (insert_location == distances.size)
+    return;
+
+  size_t stride = knn.feature_count + 1;
+
+  assert (distances.size - 1 >= insert_location);
+  for (size_t i = distances.size - 1; i > insert_location; i--)
+    {
+      number_t *current = dataset_point (knn, i - 1);
+      number_t *next = dataset_point (knn, i);
+      memcpy (next, current, stride * sizeof (number_t));
+    }
+
+  number_t *slot = dataset_point (knn, insert_location);
+  memcpy (slot, point, stride * sizeof (number_t));
+}
+
+void
+test_vp_queue ()
+{
+  Dataset dataset = dataset_new (1, 10);
+  for (size_t i = 0; i < dataset.size; i++)
+    {
+      number_t *point = dataset_point (dataset, i);
+      point[0] = __FLT_MAX__;
+    }
+
+  number_t origin[2];
+  origin[0] = 0.0f;
+  origin[1] = 0.0f;
+  for (size_t i = 0; i < dataset.size; i++)
+    {
+      number_t point[2];
+      point[0] = 0.0f;
+      point[1] = (number_t) ((50 - i) % 10);
+      queue_insert (dataset, point, origin);
+    }
+
+  for (size_t i = 1; i < dataset.size; i++)
+    {
+      number_t *prev = dataset_point (dataset, i - 1);
+      number_t *current = dataset_point (dataset, i);
+      assert (prev[1] <= current[1]);
+    }
+}
+
+static void
+vp_tree_search (VPTree tree, Dataset knn, number_t *target, size_t offset,
+                size_t size, size_t heap_root)
+{
+  /* Get the vantage point. */
+  number_t vp[tree.dataset.feature_count + 1];
+  vp_tree_read_vp (tree, vp, heap_root);
+
+  /* Get the median. */
+  number_t median = tree.median_heap.data[heap_root];
+
+  number_t distance = point_distance (vp, target, tree.dataset.feature_count);
+
+  assert (size > 1);
+
+  if (size == 2)
+    {
+      number_t *first = dataset_point (tree.dataset, offset);
+      number_t *second = dataset_point (tree.dataset, offset + 1);
+      queue_insert (knn, first, target);
+      queue_insert (knn, second, target);
+      return;
+    }
+
+  if (distance < median)
+    {
+      vp_tree_search (tree, knn, target, offset, size / 2,
+                      heap_left_child_of (heap_root));
+      number_t furthest_distance
+        = point_distance (target, dataset_point (knn, knn.size - 1),
+                          knn.feature_count);
+      if (furthest_distance >= (median - distance))
+        {
+          /* Search the outer child. */
+          vp_tree_search (tree, knn, target, offset + size / 2, size / 2,
+                          heap_right_child_of (heap_root));
+        }
+    }
+  else
+    {
+      vp_tree_search (tree, knn, target, offset + size / 2, size / 2,
+                      heap_right_child_of (heap_root));
+      number_t furthest_distance
+        = point_distance (target, dataset_point (knn, knn.size - 1),
+                          knn.feature_count);
+      if (furthest_distance >= (distance - median))
+        {
+          /* Search the inner child. */
+          vp_tree_search (tree, knn, target, offset, size / 2,
+                          heap_left_child_of (heap_root));
+        }
+    }
+}
+
+Dataset
+vp_tree_find_knn (VPTree tree, number_t *target, size_t k)
+{
+  Dataset knn = dataset_new (tree.dataset.feature_count, k);
+
+  /* Initialize the ID of all points to __FLT_MAX__ so that they will
+   * be overwritten by any other actual point in the dataset.
+   */
+  for (size_t i = 0; i < knn.size; i++)
+    {
+      number_t *point = dataset_point (knn, i);
+      point[0] = __FLT_MAX__;
+      for (size_t i = 0; i < knn.feature_count; i++)
+        point[i + 1] = 57.0f;
+    }
+
+  vp_tree_search (tree, knn, target, 0, tree.dataset.size, 0);
+  return knn;
 }
